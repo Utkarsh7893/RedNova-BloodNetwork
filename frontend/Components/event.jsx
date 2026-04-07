@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { fetchRandomImage } from "./api";
 import * as THREE from "three";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "import.meta.env.VITE_API_URL";
 
 export default function Events() {
   const [imageUrl, setImageUrl] = useState(null);

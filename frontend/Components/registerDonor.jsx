@@ -31,7 +31,7 @@ function LocationMarker({ form, setForm }) {
   return position === null ? null : <Marker position={position}></Marker>;
 }
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "import.meta.env.VITE_API_URL";
 
 export default function DonorRegister() {
   const mountRef = useRef(null);

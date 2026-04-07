@@ -21,6 +21,8 @@ export default function LoginSignupPage() {
 
   const mountRef = useRef(null);
 
+  const API_BASE = "import.meta.env.VITE_API_URL";
+
   const handdleLogin = async (e) => {
     e.preventDefault();
 
@@ -28,9 +30,8 @@ export default function LoginSignupPage() {
       alert("Kindly fill all the required details");
       return;
     }
-
     try {
-      const res = await fetch("http://localhost:3000/login", {
+      const res = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +70,7 @@ export default function LoginSignupPage() {
       return;
     }
 
-    await fetch("http://localhost:3000/signup", {
+    await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

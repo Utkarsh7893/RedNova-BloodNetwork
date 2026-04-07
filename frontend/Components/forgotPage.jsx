@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 
+const API_BASE = "import.meta.env.VITE_API_URL";
+
 export default function ForgotPage() {
   const navigate=useNavigate();
   const [email, setEmail] = useState('');
@@ -14,10 +16,9 @@ export default function ForgotPage() {
       alert("Please enter your email.");
       return;
     }
-
     // Send the form data to your backend
     try {
-      await fetch("http://localhost:3000/forgot", {
+      await fetch(`${API_BASE}/forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })

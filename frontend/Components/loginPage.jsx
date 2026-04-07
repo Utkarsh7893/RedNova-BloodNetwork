@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 
+const API_BASE = "import.meta.env.VITE_API_URL";
+
 export default function LoginSignupPage() {
   const navigate = useNavigate();
 
@@ -30,7 +32,7 @@ export default function LoginSignupPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/login", {
+      const res = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,7 +77,7 @@ export default function LoginSignupPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/signup", {
+      const res = await fetch(`${API_BASE}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as THREE from "three";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "import.meta.env.VITE_API_URL";
 
 export default function BloodBankDetails() {
   const { id } = useParams();
@@ -11,7 +11,7 @@ export default function BloodBankDetails() {
 
   // fetch bank data
   useEffect(() => {
-    fetch(`${API_BASE}/api/banks/${id}`)
+    fetch(`${API_BASE}/banks/${id}`)
       .then(res => res.json())
       .then(setBank)
       .catch(console.error);
