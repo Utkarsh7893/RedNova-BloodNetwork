@@ -366,5 +366,6 @@ mongoose.connect(process.env.MONGO_URI)
   
 
 server.listen(port, () => {
-  console.log(`Express server is running at http://localhost:3000/`);
+  const URL = `http://localhost:${port}/`;
+  console.log(`Express server is running at ${URL}`);
 });
