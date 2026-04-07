@@ -3,6 +3,7 @@ const app = express();
 const port = 3000;
 const cors = require('cors');
 const mongoose = require('mongoose');
+require("dotenv").config();
 const http = require("http");
 
 const Forgot=require('./models/forgot');
@@ -27,7 +28,7 @@ const io = new Server(server, {
 });
 
 // MongoDB connected
-mongoose.connect("mongodb+srv://utkarshraj234:fNzwHdHf3GysBOce@utkcluster.mqcdpwj.mongodb.net/?appName=utkCluster",{ useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
