@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
+import { Link } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -154,9 +155,9 @@ export default function ForgotPage() {
           </button>
 
           <div className="text-center mt-2">
-            <a href="/login" className="text-danger text-decoration-none">
+            <Link to="/login" className="text-danger text-decoration-none">
               Back to Login
-            </a>
+            </Link>
           </div>
         </form>
       </div>

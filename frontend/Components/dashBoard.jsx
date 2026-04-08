@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { fetchRandomImage1, fetchRandomImage2, fetchRandomImage3 } from './api';
 import * as THREE from "three";
 import { io } from "socket.io-client";
-
+import { useNavigate } from "react-router-dom";
+const navigate = useNavigate();
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -458,17 +459,17 @@ export default function DashBoard() {
             {/* NAV */}
             <nav className="navbar navbar-expand-lg navbar-glass rounded-3 mb-3">
               <div className="container-fluid">
-                <a className="navbar-brand">lifeStream🩸</a>
+                <Link className="navbar-brand" to="/dashboard">lifeStream🩸</Link>
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                   <span className="navbar-toggler-icon" />
                 </button>
                 <div className="collapse navbar-collapse" id="navMenu">
                   <ul className="navbar-nav ms-auto">
-                    <li className="nav-item"><a className="nav-link" href="/about">About</a></li>
-                    <li className="nav-item"><a className="nav-link" href="/donors">Donors</a></li>
-                    <li className="nav-item"><a className="nav-link" href="/bloodbank">Blood Bank</a></li>
-                    <li className="nav-item"><a className="nav-link" href="/events">Events</a></li>
-                    <li className="nav-item"><a className="nav-link" href="/contact">Contact</a></li>
+                    <li className="nav-item"><Link className="nav-link" to="/about">About</Link></li>
+                    <li className="nav-item"><Link className="nav-link" to="/donors">Donors</Link></li>
+                    <li className="nav-item"><Link className="nav-link" to="/bloodbank">Blood Bank</Link></li>
+                    <li className="nav-item"><Link className="nav-link" to="/events">Events</Link></li>
+                    <li className="nav-item"><Link className="nav-link" to="/contact">Contact</Link></li>
                   </ul>
                 </div>
               </div>
@@ -511,7 +512,7 @@ export default function DashBoard() {
                     <div
                       key={r._id}
                       className="request-item p-3 rounded-3 shadow-sm mb-2"
-                      onClick={() => window.location.href = `/dashboardrequests/${r._id}`}
+                      onClick={() => navigate(`/dashboardrequests/${r._id}`)}
                     >
                       <div style={{ fontWeight:700 }}>
                         {r.requesterName} —
@@ -532,8 +533,8 @@ export default function DashBoard() {
               <div className="col-lg-4">
                 <div className="p-3 mb-3" style={{ background: "rgba(183, 28, 28, 0.22)", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.06)" }}>
                   <h6 style={{ marginBottom: 8 }}>Quick Actions</h6>
-                  <a className="btn btn-danger w-100 mb-2" href="/requestblood">Request Blood</a>
-                  <a className="btn btn-outline-danger w-100" href="/registerdonor">Register as Donor</a>
+                  <Link className="btn btn-danger w-100 mb-2" to="/requestblood">Request Blood</Link>
+                  <Link className="btn btn-outline-danger w-100" to="/registerdonor">Register as Donor</Link>
                 </div>
 
                 <div className="p-3 banks-list">
@@ -544,7 +545,7 @@ export default function DashBoard() {
                     // compute low stock flag
                     const totalUnits = Object.values(b.stock || {}).reduce((a, c) => a + (c || 0), 0);
                     return (
-                      <div className="bank-item" key={b._id} onClick={() => window.location.href = `/bloodbank/${b._id}`}>
+                      <div className="bank-item" key={b._id} onClick={() => navigate(`/bloodbank/${b._id}`)}>
                         <div>
                           <div style={{ fontWeight: 700 }}>{b.name}</div>
                           <div className="small text-muted">{b.address}</div>
@@ -593,17 +594,17 @@ export default function DashBoard() {
                 <div className="col-md-2">
                   <h6>Explore</h6>
                   <ul className="list-unstyled small">
-                    <li><a href="/about">About</a></li>
-                    <li><a href="/donors">Donors</a></li>
-                    <li><a href="/bloodbank">Blood Banks</a></li>
+                    <li><Link to="/about">About</Link></li>
+                    <li><Link to="/donors">Donors</Link></li>
+                    <li><Link to="/bloodbank">Blood Banks</Link></li>
                   </ul>
                 </div>
                 <div className="col-md-3">
                   <h6>Support</h6>
                   <ul className="list-unstyled small">
-                    <li><a href="/volunteer">Volunteer</a></li>
-                    <li><a href="/awareness">Awareness</a></li>
-                    <li><a href="/privacypolicy">Privacy Policy</a></li>
+                    <li><Link to="/volunteer">Volunteer</Link></li>
+                    <li><Link to="/awareness">Awareness</Link></li>
+                    <li><Link to="/privacypolicy">Privacy Policy</Link></li>
                   </ul>
                 </div>
                 <div className="col-md-3">
