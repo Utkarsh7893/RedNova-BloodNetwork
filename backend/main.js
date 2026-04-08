@@ -17,7 +17,16 @@ const Contact=require("./models/ContactMsg");
 const CompletedRequest=require("./models/CompletedRequest");
 
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://rednovafrontend.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
+}));
+app.options('*', cors());
+app.use((req, res, next) => {
+  console.log(req.method, req.url);
+  next();
+});
 app.use(express.json());          // <-- parse JSON
 app.use(express.urlencoded({ extended: true })); // optional, for form data
 
