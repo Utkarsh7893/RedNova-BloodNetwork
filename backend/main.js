@@ -22,7 +22,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: true
 }));
-app.options('*', cors());
+
 app.use((req, res, next) => {
   console.log(req.method, req.url);
   next();
