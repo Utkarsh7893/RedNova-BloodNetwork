@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   fetchRandomImage4,
   fetchRandomImage5,
@@ -198,8 +199,8 @@ export default function AboutPage() {
         <div className="about-content">
 
           <div className="mb-4 d-flex gap-3">
-            <a className="btn btn-top" href="/dashboard">← Dashboard</a>
-            <a className="btn btn-top" href="/donors">Donor Network</a>
+            <Link className="btn btn-top" to="/dashboard">← Dashboard</Link>
+            <Link className="btn btn-top" to="/donors">Donor Network</Link>
           </div>
 
 
