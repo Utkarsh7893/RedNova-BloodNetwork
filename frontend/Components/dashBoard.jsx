@@ -3,11 +3,11 @@ import { fetchRandomImage1, fetchRandomImage2, fetchRandomImage3 } from './api';
 import * as THREE from "three";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function DashBoard() {
+  const navigate = useNavigate();
 
   const [imageUrl1, setImageUrl1] = useState(null);
   useEffect(() => {
