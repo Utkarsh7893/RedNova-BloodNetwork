@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import * as THREE from "three";
 
-const API_BASE = "import.meta.env.VITE_API_URL";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Donors() {
   const [donors, setDonors] = useState([]);

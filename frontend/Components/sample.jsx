@@ -21,7 +21,7 @@ export default function LoginSignupPage() {
 
   const mountRef = useRef(null);
 
-  const API_BASE = "import.meta.env.VITE_API_URL";
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   const handdleLogin = async (e) => {
     e.preventDefault();

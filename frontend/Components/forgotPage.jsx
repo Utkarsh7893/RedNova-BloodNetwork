@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 
-const API_BASE = "import.meta.env.VITE_API_URL";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function ForgotPage() {
   const navigate=useNavigate();

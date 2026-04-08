@@ -5,7 +5,7 @@ import { useParams, Link } from "react-router-dom";
 import * as THREE from "three";
 
 // CONFIG
-const API_BASE = "import.meta.env.VITE_API_URL";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function DashboardRequests() {
   const { requestId } = useParams();
