@@ -1,27 +1,116 @@
-# Real-Time-Blood-Monitoring-System-RTBMS-
-RTBMS is a MERN-based web app for managing blood donations and requests in real time. Users can register, request blood, set locations via maps, and reset passwords via email. An admin dashboard tracks donors, blood banks, and live statistics with a dynamic Three.js interface and MongoDB storage.
-The platform is designed to streamline blood donation and request management through a centralized, real-time web application. Users can securely register as donors, request blood, and update their precise location using integrated map functionality. The system features authentication with sign-up, sign-in, and email-based password reset. An interactive admin dashboard enables efficient handling of blood requests, monitoring of donor profiles, and tracking of blood availability across multiple blood banks. It also displays dynamic analytics such as live user count, total registered users, and overall blood donations. The UI is built with Three.js to deliver a modern, dynamic user experience. Additional features include an About page powered by the Unsplash Image API and a Contact page with direct WhatsApp redirection. All application data is securely stored and managed using MongoDB.
+# 🩸 RedNova-BloodNetwork
 
-For New Users:
-Whenever you'll download this file in your local directory, follow these steps to run this project:
-1. Unzip the file.
-2. Navigate to backend folder and create a ".env" file.
-3. Inside the file you can paste your MONGODB-URL as MONGO_URI= your_mongo_url;
-4. After that navigate to frontend and type "npm install".
-5. Now you are all set, you can run the frontend using "npm run dev" and backend using "node main.js".
+## 📌 Overview
 
-Tech Stack:
+RedNova-BloodNetwork is a MERN-based web application designed for real-time management of blood donations and requests. It provides a centralized platform connecting donors, recipients, and blood banks to improve accessibility, transparency, and response time during emergencies.
 
-MongoDB
+---
 
-Express.js
+## 🚀 Features
 
-React.js
+### 🔐 User Authentication
 
-Node.js
+* Secure user registration (Sign-up) and login (Sign-in)
+* Email-based password reset functionality
 
-Three.js
+### 🧑‍🤝‍🧑 Donor & Request Management
 
-Unsplash Image API
+* Users can register as blood donors
+* Real-time blood request system
+* Track donation and request activities
 
-WhatsApp Integration
+### 📍 Location Integration
+
+* Users can set and update their location using map functionality
+* Helps locate nearby donors and blood banks efficiently
+
+### 🛠️ Admin Dashboard
+
+* Monitor all blood requests and donor profiles
+* Track blood availability across multiple blood banks
+* Manage platform operations efficiently
+
+### 📊 Live Analytics
+
+* Displays real-time user count
+* Shows total registered users
+* Tracks overall blood donations
+
+### 🎨 Modern UI/UX
+
+* Built with Three.js for a dynamic and interactive interface
+* Enhanced user experience with modern visuals
+
+### 📄 Additional Pages
+
+* About page powered by Unsplash Image API
+* Contact page with direct WhatsApp redirection
+
+### 🗄️ Database Management
+
+* Secure data storage and management using MongoDB
+
+---
+
+## 🧰 Tech Stack
+
+* MongoDB
+* Express.js
+* React.js
+* Node.js
+* Three.js
+* Unsplash Image API
+* WhatsApp Integration
+
+---
+
+## ⚙️ Installation & Setup
+
+Follow these steps to run the project locally:
+
+1. Download and unzip the project file
+2. Navigate to the backend folder
+3. Create a `.env` file and add:
+
+   ```env
+   MONGO_URI=your_mongo_url
+   ```
+4. Navigate to the frontend folder and install dependencies:
+
+   ```bash
+   npm install
+   ```
+5. Start the application:
+
+   **Frontend:**
+
+   ```bash
+   npm run dev
+   ```
+
+   **Backend:**
+
+   ```bash
+   node main.js
+   ```
+
+---
+
+## 🌟 Future Improvements
+
+* Real-time notifications for blood requests
+* Mobile app integration
+* Advanced filtering for donors and blood banks
+* AI-based demand prediction
+
+---
+
+## 📞 Contact
+
+For queries or support, use the Contact page in the application with WhatsApp integration.
+
+---
+
+## 📄 License
+
+This project is for educational and development purposes.
