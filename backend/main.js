@@ -30,6 +30,10 @@ app.use((req, res, next) => {
 app.use(express.json());          // <-- parse JSON
 app.use(express.urlencoded({ extended: true })); // optional, for form data
 
+app.get('/', (req, res) => {
+  res.send('Backend is running 🚀');
+});
+
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
