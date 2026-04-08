@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { fetchRandomImage1, fetchRandomImage2, fetchRandomImage3 } from './api';
 import * as THREE from "three";
 import { io } from "socket.io-client";
-import { useNavigate } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
