@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import * as THREE from "three";
+import { Link } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -290,7 +291,9 @@ export default function Donors() {
                   </div>
                   <div className="col-md-3 d-flex flex-column align-items-end">
                     <div className="small text-muted">{dist ? `${dist} km away` : "Distance —"}</div>
-                    <a href={`/donor/${d._id}`} className="btn btn-outline-danger btn-sm mt-2">View Profile</a>
+                    <Link to={`/donor/${d._id}`} className="btn btn-outline-danger btn-sm mt-2">
+                      View Profile
+                    </Link>
                   </div>
                 </div>
               </div>
