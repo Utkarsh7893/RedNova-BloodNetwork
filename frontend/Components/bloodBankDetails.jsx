@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as THREE from "three";
+import { Link } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -199,9 +200,9 @@ export default function BloodBankDetails() {
             </div>
 
             <div className="mt-4">
-              <a href="/dashboard" className="btn btn-outline-danger">
+              <Link to="/dashboard" className="btn btn-outline-danger">
                 ← Back to Dashboard
-              </a>
+              </Link>
             </div>
           </div>
         </div>
