@@ -11,7 +11,7 @@ export default function BloodBankDetails() {
 
   // fetch bank data
   useEffect(() => {
-    fetch(`${API_BASE}/banks/${id}`)
+    fetch(`${API_BASE}/api/banks/${id}`)
       .then(res => res.json())
       .then(setBank)
       .catch(console.error);
