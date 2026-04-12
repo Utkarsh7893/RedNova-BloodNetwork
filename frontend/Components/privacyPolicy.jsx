@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { useNavigate } from "react-router-dom";
 
 export default function PrivacyPolicy() {
   const mountRef = useRef(null);
   const [accepted, setAccepted] = useState(false);
+  const navigate = useNavigate();
 
   // Three.js background
   useEffect(() => {
@@ -259,7 +261,7 @@ export default function PrivacyPolicy() {
             <button
               className="btn btn-back text-white"
               disabled={!accepted}
-              onClick={() => (window.location.href = "/dashboard")}
+              onClick={() => navigate("/dashboard")}
             >
               ← Back to Dashboard
             </button>

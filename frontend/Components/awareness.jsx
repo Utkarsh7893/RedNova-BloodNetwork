@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { useNavigate } from "react-router-dom";
 
 export default function Awareness() {
   const mountRef = useRef(null);
+  const navigate = useNavigate();
 
   // Three.js background
   useEffect(() => {
@@ -221,7 +223,7 @@ export default function Awareness() {
           <div className="text-center">
             <button
               className="btn btn-back text-white"
-              onClick={() => (window.location.href = "/dashboard")}
+              onClick={() => navigate("/dashboard")}
             >
               ← Back to Dashboard
             </button>
