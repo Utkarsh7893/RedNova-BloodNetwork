@@ -12,13 +12,18 @@ export default function DashBoard() {
   const mountRef = useRef(null);
   const socketRef = useRef(null);
 
-  const [imageUrl1, setImageUrl1] = useState(null);
-  const [imageUrl2, setImageUrl2] = useState(null);
-  const [imageUrl3, setImageUrl3] = useState(null);
+  const [imageUrl1, setImageUrl1] = useState("https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=800&q=80");
+  const [imageUrl2, setImageUrl2] = useState("https://images.unsplash.com/photo-1576671494552-5a6d9d87c000?w=800&q=80");
+  const [imageUrl3, setImageUrl3] = useState("https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&q=80");
 
-  useEffect(() => { (async () => setImageUrl1(await fetchRandomImage1()))(); }, []);
-  useEffect(() => { (async () => setImageUrl2(await fetchRandomImage2()))(); }, []);
-  useEffect(() => { (async () => setImageUrl3(await fetchRandomImage3()))(); }, []);
+  useEffect(() => {
+    const fetchImages = async () => {
+      try { const img = await fetchRandomImage1(); if (img) setImageUrl1(img); } catch (e) {}
+      try { const img = await fetchRandomImage2(); if (img) setImageUrl2(img); } catch (e) {}
+      try { const img = await fetchRandomImage3(); if (img) setImageUrl3(img); } catch (e) {}
+    };
+    fetchImages();
+  }, []);
 
   const carouselImages = [imageUrl1, imageUrl2, imageUrl3];
   const [carouselIndex, setCarouselIndex] = useState(0);

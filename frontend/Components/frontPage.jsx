@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { useTheme } from "../src/ThemeContext.jsx";
+import { FiHeart, FiUsers, FiSearch, FiBarChart2, FiDroplet, FiMoon, FiSun, FiActivity, FiChevronDown, FiPlusCircle } from "react-icons/fi";
 
 const STATS = [
   { value: "Every 2 sec", label: "Someone needs blood" },
@@ -22,7 +23,24 @@ export default function FrontPage() {
   const { isDark, toggleTheme } = useTheme();
   const [pageVisible, setPageVisible] = useState(false);
   const [selectedBlood, setSelectedBlood] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+
+  const handleScroll = (e) => {
+    setIsScrolled(e.target.scrollTop > 10);
+  };
+
+  useEffect(() => {
+    const handleWinScroll = () => {
+      if (window.scrollY > 10 || document.documentElement.scrollTop > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleWinScroll);
+    return () => window.removeEventListener('scroll', handleWinScroll);
+  }, []);
 
   // Fade in on mount
   useEffect(() => {
@@ -56,8 +74,8 @@ export default function FrontPage() {
       container.appendChild(renderer.domElement);
 
       scene = new THREE.Scene();
-      // Dark: deep navy, Light: clean off-white
-      scene.background = new THREE.Color(isDark ? "#0D1B2A" : "#F0F4F8");
+      // Make background transparent so the interactive background image shows through
+      scene.background = null;
 
       camera = new THREE.PerspectiveCamera(
         45,
@@ -69,27 +87,39 @@ export default function FrontPage() {
 
       // Lights
       scene.add(new THREE.AmbientLight(0xffffff, isDark ? 0.6 : 1.1));
-      const glowLight = new THREE.PointLight(isDark ? 0xff2020 : 0xC62828, 6, 22);
+      const glowLight = new THREE.PointLight(isDark ? 0xff1744 : 0xd50000, 6, 22);
       glowLight.position.set(0, 0, 6);
       scene.add(glowLight);
 
-      // Floating particles (blood drops)
-      const dropGeom = new THREE.SphereGeometry(0.05, 8, 8);
-      const dropMat = new THREE.MeshStandardMaterial({
-        color: isDark ? 0xEF5350 : 0xC62828,
-        emissive: isDark ? 0x550000 : 0x330000,
-        emissiveIntensity: 0.2,
+      // Floating plasma / red blood cells
+      const dropGeom = new THREE.SphereGeometry(0.065, 16, 16);
+      dropGeom.scale(1, 1, 0.35); // Flatten like a blood cell
+      const dropMat = new THREE.MeshPhysicalMaterial({
+        color: isDark ? 0xff1744 : 0xd50000,
+        emissive: isDark ? 0xcc0000 : 0x990000,
+        emissiveIntensity: isDark ? 0.8 : 0.5, // Brighter glow in dark mode
+        roughness: 0.15,
+        metalness: 0.1,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        transparent: true,
+        opacity: isDark ? 0.9 : 0.75, // Softer opacity in light mode
       });
 
       drops = new THREE.Group();
-      for (let i = 0; i < 260; i++) {
+      for (let i = 0; i < 220; i++) {
         const p = new THREE.Mesh(dropGeom, dropMat);
         const x = Math.random() * 14 - 7;
         const y = Math.random() * 10 - 5;
         const z = Math.random() * 8 - 4;
         p.basePos = { x, y, z };
         p.position.set(x, y, z);
+        
+        // Initial random rotation
+        p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+        
         p.userData.wave = Math.random() * Math.PI * 2;
+        p.userData.rotSpeed = (Math.random() - 0.5) * 0.04;
         drops.add(p);
       }
       scene.add(drops);
@@ -136,6 +166,8 @@ export default function FrontPage() {
             p.position.x = p.basePos.x + Math.sin(glowFrame * 0.12 + p.userData.wave) * 0.8;
             p.position.y = p.basePos.y + Math.sin(glowFrame * 0.18 + p.userData.wave) * 0.5;
             p.position.z = p.basePos.z + Math.cos(glowFrame * 0.15 + p.userData.wave) * 0.6;
+            p.rotation.x += p.userData.rotSpeed;
+            p.rotation.y += p.userData.rotSpeed;
           });
         }
 
@@ -187,17 +219,22 @@ export default function FrontPage() {
           0%,100% { transform: translateY(0px); }
           50%      { transform: translateY(-8px); }
         }
+        @keyframes bounce-arrow {
+          0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+          40% { transform: translateX(-50%) translateY(12px); }
+          60% { transform: translateX(-50%) translateY(6px); }
+        }
 
         /* 
           1. Mobile & Tablet Optimization 
         */
         .front-wrapper {
-          min-height: 100vh;
+          min-height: 100dvh;
           width: 100vw;
           overflow-x: hidden;
-          background: url('/img/front_blood_bg_1777551469033.png') center/cover no-repeat fixed;
           background-color: var(--ls-bg); /* fallback */
           font-family: Inter, system-ui, Roboto;
+          -webkit-tap-highlight-color: transparent;
         }
 
         /* The translucent overlay that makes the background look glassmorphic */
@@ -210,25 +247,27 @@ export default function FrontPage() {
           pointer-events: none;
         }
 
-        .canvas-bg {
+        .hero-canvas {
           position: fixed;
           top: 0;
           left: 0;
           width: 100vw;
-          height: 100vh;
+          height: 100dvh;
           z-index: 1; /* Above the overlay, below content */
           pointer-events: none;
         }
 
         .hero-page {
           width: 100%;
-          height: 100vh;
+          min-height: 100dvh;
           position: relative;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
           display: flex;
           flex-direction: column;
           transition: opacity 0.7s ease;
           z-index: 2;
+          -webkit-overflow-scrolling: touch;
         }
 
         /* ── Top bar ── */
@@ -241,11 +280,14 @@ export default function FrontPage() {
           padding: 18px 36px;
         }
         .hero-brand {
-          font-family: 'Manrope', sans-serif;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'Poppins', sans-serif;
           font-weight: 800;
-          font-size: 26px;
-          letter-spacing: -0.04em;
-          background: var(--ls-grad-crimson);
+          font-size: 30px;
+          letter-spacing: -0.02em;
+          background: linear-gradient(135deg, #FF1744, #D50000);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -268,6 +310,10 @@ export default function FrontPage() {
           cursor: pointer;
           text-decoration: none;
           transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
         }
         .hero-topbar-btn:hover {
           background: rgba(198,40,40,0.12);
@@ -300,8 +346,9 @@ export default function FrontPage() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           align-items: center;
-          padding: 0 36px;
-          gap: 32px;
+          align-content: center;
+          padding: 0 48px;
+          gap: 36px;
           max-width: 1300px;
           margin: 0 auto;
           width: 100%;
@@ -311,43 +358,51 @@ export default function FrontPage() {
         .hero-left {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 22px;
           animation: ls-fade-up 0.7s ease both;
         }
         .hero-tag {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 6px 14px;
+          padding: 8px 16px;
           border-radius: 30px;
-          background: rgba(198,40,40,0.10);
-          border: 1px solid rgba(198,40,40,0.22);
+          background: rgba(198,40,40,0.12);
+          border: 1px solid rgba(198,40,40,0.28);
           color: var(--ls-crimson);
-          font-weight: 600;
-          font-size: 13px;
+          font-weight: 700;
+          font-size: 14px;
           width: fit-content;
+          box-shadow: 0 4px 12px rgba(198,40,40,0.15);
         }
         .hero-h1 {
           font-family: 'Manrope', sans-serif;
-          font-size: clamp(32px, 4.5vw, 58px);
+          font-size: clamp(38px, 5.5vw, 68px);
           font-weight: 800;
-          line-height: 1.12;
-          letter-spacing: -0.04em;
+          line-height: 1.1;
+          letter-spacing: -0.05em;
           color: var(--ls-text);
           margin: 0;
+          text-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
         .hero-h1 .accent {
-          background: var(--ls-grad-crimson);
+          background: linear-gradient(135deg, #FF1744, #D50000);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          position: relative;
+          display: inline-block;
+          filter: drop-shadow(0 0 16px rgba(255,23,68,0.25));
         }
         .hero-sub {
-          font-size: clamp(14px, 1.8vw, 18px);
-          color: var(--ls-text-sub);
-          line-height: 1.6;
+          font-family: 'Inter', sans-serif;
+          font-size: clamp(16px, 2vw, 20px);
+          color: var(--ls-text);
+          opacity: 0.9;
+          font-weight: 500;
+          line-height: 1.65;
           margin: 0;
-          max-width: 460px;
+          max-width: 500px;
         }
         .hero-actions {
           display: flex;
@@ -358,7 +413,7 @@ export default function FrontPage() {
           padding: 14px 32px;
           border-radius: 14px;
           border: none;
-          background: var(--ls-grad-crimson);
+          background: linear-gradient(135deg, #FF1744, #D50000);
           color: #fff;
           font-weight: 700;
           font-size: 16px;
@@ -366,9 +421,9 @@ export default function FrontPage() {
           text-decoration: none;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 8px 28px rgba(198,40,40,0.40);
+          box-shadow: 0 8px 28px rgba(213,0,0,0.40);
           animation: ls-pulse-ring 2.2s ease-in-out infinite;
         }
         .hero-cta-primary:hover {
@@ -404,25 +459,30 @@ export default function FrontPage() {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 14px;
+          gap: 16px;
           animation: ls-fade-up 0.7s 0.2s ease both;
         }
         .hero-glass-card {
-          background: var(--ls-surface);
-          backdrop-filter: blur(18px) saturate(150%);
-          -webkit-backdrop-filter: blur(18px) saturate(150%);
+          background: color-mix(in srgb, var(--ls-surface) 85%, transparent);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
           border: 1px solid var(--ls-border);
-          border-radius: 18px;
-          padding: 18px 22px;
-          box-shadow: var(--ls-shadow-md);
+          border-radius: 20px;
+          padding: 22px 26px;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.12);
           width: 100%;
-          max-width: 340px;
+          max-width: 360px;
+          transition: transform 0.3s ease;
+        }
+        .hero-glass-card:hover {
+          transform: translateY(-4px) scale(1.02);
         }
         .hero-quote {
-          font-size: 14px;
-          line-height: 1.65;
+          font-size: 15px;
+          line-height: 1.7;
           color: var(--ls-text-sub);
           font-style: italic;
+          font-weight: 500;
         }
         .hero-blood-grid {
           display: grid;
@@ -444,11 +504,11 @@ export default function FrontPage() {
         }
         .hero-blood-chip:hover,
         .hero-blood-chip.selected {
-          background: var(--ls-grad-crimson);
+          background: linear-gradient(135deg, #FF1744, #D50000);
           color: #fff;
           border-color: transparent;
           transform: scale(1.06);
-          box-shadow: 0 6px 18px rgba(198,40,40,0.35);
+          box-shadow: 0 6px 18px rgba(213,0,0,0.35);
         }
         .hero-stat-row {
           display: grid;
@@ -474,76 +534,255 @@ export default function FrontPage() {
           margin-top: 2px;
         }
 
-        /* ── ECG strip at bottom ── */
-        .hero-ecg-strip {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 60px;
-          overflow: hidden;
-          z-index: 15;
-          opacity: 0.55;
+        /* (Removed ECG strip at bottom) */
+
+        /* Light Mode Glass Background */
+        .light-mode-glass {
+          background: color-mix(in srgb, var(--ls-surface) 85%, transparent) !important;
+          backdrop-filter: blur(24px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+          border-radius: 24px;
+          padding: 24px !important;
+          box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+          border: 1px solid var(--ls-border);
         }
-        .hero-ecg-inner {
-          display: flex;
-          white-space: nowrap;
-          animation: ecg-scroll 3.5s linear infinite;
+
+        /* Heart zone spacer — hidden on desktop, visible on mobile */
+        .hero-heart-zone {
+          display: none;
         }
-        .hero-ecg-svg {
-          flex-shrink: 0;
+
+        /* Get Started Glowing Button */
+        .hero-get-started-btn {
+          padding: 16px 44px;
+          border-radius: 50px;
+          background: linear-gradient(135deg, #FF1744, #D50000);
+          color: #fff;
+          font-weight: 800;
+          font-size: 20px;
+          letter-spacing: 0.05em;
+          text-decoration: none;
+          box-shadow: 0 0 20px rgba(255,23,68,0.4), 0 0 40px rgba(255,23,68,0.2);
+          animation: ls-pulse-ring 2.5s infinite;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          z-index: 50;
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .hero-get-started-btn:hover {
+          transform: scale(1.08) translateY(-4px);
+          box-shadow: 0 0 35px rgba(255,23,68,0.7), 0 0 70px rgba(255,23,68,0.4);
+        }
+        @keyframes float-drop {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        .hero-get-started-btn .blood-drop {
+          animation: float-drop 1.5s ease-in-out infinite;
+        }
+
+        /* Scroll down arrow — hidden on desktop */
+        .hero-scroll-arrow {
+          display: none;
+        }
+
+        /* Footer */
+        .hero-footer {
+          position: relative;
+          z-index: 10;
+          text-align: center;
+          padding: 12px 20px 24px; /* Added bottom padding */
+          background: transparent; /* Removed full-width background */
+        }
+        .hero-footer-pill {
+          display: inline-block;
+          background: rgba(128, 128, 128, 0.15);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          padding: 10px 24px;
+          border-radius: 50px;
+          border: 1px solid rgba(128, 128, 128, 0.2);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+        }
+        .hero-footer-text {
+          font-size: 13px;
+          color: var(--ls-text); /* Higher contrast */
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          margin: 0;
+        }
+        .hero-footer-text .footer-heart {
+          color: #FF1744;
+          display: inline-block;
+        }
+        .hero-footer-name {
+          font-weight: 700;
+          background: linear-gradient(135deg, #FF1744, #D50000);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         /* Responsive */
+        @media (max-width: 1024px) {
+          .hero-body {
+            gap: 20px;
+            padding: 0 24px;
+          }
+          .hero-h1 { font-size: clamp(34px, 5vw, 48px); }
+          .hero-glass-card { max-width: 100%; }
+        }
         @media (max-width: 768px) {
           .hero-page {
             height: auto;
-            min-height: 100vh;
+            min-height: auto;
+            padding-bottom: 0;
           }
           .hero-canvas {
-            position: absolute;
-            height: 100vh;
-            opacity: 0.3;
+            opacity: 0.5;
           }
           .hero-body {
-            grid-template-columns: 1fr;
-            padding: 0 20px;
-            gap: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0 16px;
+            gap: 0;
           }
-          .hero-topbar { padding: 14px 20px; }
-          .hero-left { padding-top: 30px; }
-          .hero-right { align-items: center; padding-bottom: 80px; }
-          .hero-glass-card { max-width: 100%; }
-          .hero-h1 { font-size: clamp(28px, 7vw, 38px); }
-          .hero-ecg-strip { position: relative; }
+          .hero-topbar { padding: 12px 16px; }
+          .hero-left { 
+            padding: 16px 10px 0;
+            margin-top: 20px; /* Shift lower towards center */
+            z-index: 10;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+          .hero-left .hero-tag { font-size: 12px; padding: 6px 12px; }
+          .hero-left .hero-h1 { font-size: clamp(28px, 8vw, 36px); margin-bottom: 6px; }
+          .hero-left .hero-sub { font-size: 14px; line-height: 1.5; margin-bottom: 4px; max-width: 90%; }
+          .hero-left .hero-actions { 
+            gap: 12px; 
+            flex-direction: column; /* Stack vertically */
+            justify-content: center;
+            width: 100%;
+          }
+          .hero-left .hero-cta-primary { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+          .hero-left .hero-cta-secondary { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+          
+          /* Spacer for the beating heart to show through */
+          .hero-heart-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 22vh; /* Severely decreased space above and below button */
+            position: relative;
+            z-index: 50;
+            margin: 10px 0;
+          }
+
+          /* Scroll arrow — fixed at bottom of screen */
+          .hero-scroll-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            animation: bounce-arrow 2s infinite;
+          }
+          .hero-scroll-arrow span {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--ls-text-muted);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+          }
+          .hero-scroll-arrow .arrow-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(255,23,68,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF1744;
+            box-shadow: 0 4px 20px rgba(255,23,68,0.3);
+          }
+
+          .hero-right { 
+            align-items: center; 
+            width: 100%; 
+            z-index: 10;
+            padding: 0;
+            margin-top: -10px; /* Shift upper towards center */
+            margin-bottom: 60px;
+            background: transparent;
+            gap: 16px;
+          }
+          .hero-glass-card { width: 100%; max-width: 100%; padding: 18px 20px; }
+          .hero-blood-grid { grid-template-columns: repeat(4, 1fr); }
+          .hero-stat-row { grid-template-columns: 1fr 1fr; gap: 6px; }
         }
         @media (max-width: 480px) {
-          .hero-brand { font-size: 20px; }
-          .hero-topbar-btn { display: none; }
-          .hero-left { padding-top: 20px; }
-          .hero-sub { font-size: 14px; }
-          .hero-actions { flex-direction: column; }
-          .hero-cta-primary, .hero-cta-secondary { width: 100%; justify-content: center; }
+          .hero-brand { font-size: 24px; }
+          .hero-topbar-btn { padding: 8px 12px; font-size: 13px; }
+          .hero-theme-btn { width: 34px; height: 34px; font-size: 15px; }
+        }
+
+        /* Static Background Layer */
+        .hero-bg-layer {
+          position: fixed;
+          inset: 0;
+          background: url('/img/front_blood_bg_1777551469033.png') center/cover no-repeat fixed;
+          z-index: 0;
+        }
+        .hero-gradient-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          background: linear-gradient(to bottom right, var(--ls-bg), transparent, var(--ls-bg));
+          opacity: 0.9;
         }
       `}</style>
 
       <div
         className="hero-page"
-        style={{ opacity: pageVisible ? 1 : 0, background: 'var(--ls-bg)' }}
+        onScroll={handleScroll}
+        style={{ opacity: pageVisible ? 1 : 0, backgroundColor: 'var(--ls-bg)', position: 'relative' }}
       >
+        {/* Static Background Layer */}
+        <div 
+          className="hero-bg-layer"
+          style={{ opacity: isDark ? 0.4 : 0.6 }}
+        />
+        <div className="hero-gradient-overlay" />
+
         {/* THREE.js canvas */}
         <div className="hero-canvas" ref={mountRef} />
 
         {/* Top bar */}
         <div className="hero-topbar">
-          <span className="hero-brand">lifeStream 🩸</span>
-          <div className="hero-topbar-actions">
+          <Link to="/" className="hero-brand">
+            <FiActivity size={32} style={{ color: '#FF1744' }} /> lifeStream
+          </Link>
+          <div className="hero-topbar-actions" style={{ gap: '18px' }}>
             <button className="hero-theme-btn" onClick={toggleTheme} title="Toggle theme">
-              {isDark ? '☀️' : '🌙'}
+              {isDark ? <FiPlusCircle size={20} color="#FF1744" /> : <FiPlusCircle size={20} color="#D50000" />}
             </button>
-            <Link to="/login" className="hero-topbar-btn">Sign In</Link>
-            <Link to="/login" className="hero-topbar-btn" style={{ background: 'var(--ls-grad-crimson)', color: '#fff', border: 'none', boxShadow: '0 6px 18px rgba(198,40,40,0.35)' }}>
-              Get Started
+            <Link to="/registerdonor" className="hero-topbar-btn" style={{ background: 'linear-gradient(135deg, #FF1744, #D50000)', color: '#fff', border: 'none', boxShadow: '0 4px 14px rgba(213,0,0,0.3)' }}>
+              Sign Up
             </Link>
           </div>
         </div>
@@ -551,9 +790,10 @@ export default function FrontPage() {
         {/* Main hero body */}
         <div className="hero-body">
           {/* Left: copy + CTAs */}
-          <div className="hero-left">
+          <div className={`hero-left ${!isDark ? 'light-mode-glass' : ''}`}>
+
             <div className="hero-tag">
-              <span>🩺</span>
+              <FiActivity size={18} />
               <span>Trusted Blood Donation Network</span>
             </div>
 
@@ -569,34 +809,41 @@ export default function FrontPage() {
 
             <div className="hero-actions">
               <Link to="/login" className="hero-cta-primary">
-                🩸 Donate Now
+                <FiUsers size={20} /> Login
               </Link>
               <Link to="/donors" className="hero-cta-secondary">
-                👥 Find Donors →
+                <FiSearch size={20} /> Find Donors
               </Link>
             </div>
 
             {/* Mini stats row */}
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '10px' }}>
               {[
                 { n: '10K+', l: 'Donors registered' },
                 { n: '56L+', l: 'Blood donated' },
                 { n: '300+', l: 'Blood banks' },
               ].map(s => (
                 <div key={s.l}>
-                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: 20, color: 'var(--ls-crimson)' }}>{s.n}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ls-text-muted)' }}>{s.l}</div>
+                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: 22, color: '#FF1744', textShadow: '0 2px 10px rgba(255,23,68,0.2)' }}>{s.n}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text)', fontWeight: 600, opacity: 0.85 }}>{s.l}</div>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Spacer for heart on mobile */}
+          <div className="hero-heart-zone">
+            <Link to="/login" className="hero-get-started-btn">
+              Get Started <FiDroplet className="blood-drop" size={24} />
+            </Link>
           </div>
 
           {/* Right: glass cards */}
           <div className="hero-right">
             {/* Blood type selector */}
             <div className="hero-glass-card">
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ls-text)', marginBottom: 10 }}>
-                🔍 Find a Donor by Blood Type
+              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ls-text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiSearch size={18} color="#FF1744" /> Find a Donor by Blood Type
               </div>
               <div className="hero-blood-grid">
                 {BLOOD_TYPES.map(bt => (
@@ -616,8 +863,8 @@ export default function FrontPage() {
 
             {/* Stats card */}
             <div className="hero-glass-card">
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ls-text)', marginBottom: 10 }}>
-                📊 Did you know?
+              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--ls-text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiBarChart2 size={18} color="#00C9B1" /> Did you know?
               </div>
               <div className="hero-stat-row">
                 {STATS.map(s => (
@@ -647,51 +894,28 @@ export default function FrontPage() {
           </div>
         </div>
 
-        {/* ECG strip at bottom */}
-        <div className="hero-ecg-strip">
-          <div className="hero-ecg-inner">
-            {[0, 1, 2, 3, 4, 5].map(i => (
-              <svg
-                key={i}
-                className="hero-ecg-svg"
-                width="120"
-                height="60"
-                viewBox="0 0 120 60"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <polyline
-                  points="0,30 20,30 25,10 30,50 35,5 42,55 48,30 60,30 80,30 85,10 90,50 95,5 102,55 108,30 120,30"
-                  stroke={isDark ? '#EF5350' : '#C62828'}
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ))}
-            {/* Duplicate for seamless scroll */}
-            {[0, 1, 2, 3, 4, 5].map(i => (
-              <svg
-                key={`dup-${i}`}
-                className="hero-ecg-svg"
-                width="120"
-                height="60"
-                viewBox="0 0 120 60"
-                fill="none"
-              >
-                <polyline
-                  points="0,30 20,30 25,10 30,50 35,5 42,55 48,30 60,30 80,30 85,10 90,50 95,5 102,55 108,30 120,30"
-                  stroke={isDark ? '#EF5350' : '#C62828'}
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ))}
+        {/* Footer */}
+        <div className="hero-footer">
+          <div className="hero-footer-pill">
+            <p className="hero-footer-text">
+              © {new Date().getFullYear()} lifeStream — Built with <span className="footer-heart"><FiHeart size={13} /></span> by <span className="hero-footer-name">Utkarsh Raj</span>
+            </p>
           </div>
         </div>
+
+        {/* Scroll arrow — fixed at bottom, mobile only, vanishes smoothly on scroll */}
+        <div className="hero-scroll-arrow" style={{ 
+          opacity: isScrolled ? 0 : 1, 
+          transform: isScrolled ? 'translateX(-50%) translateY(30px)' : 'translateX(-50%) translateY(0)',
+          transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', 
+          pointerEvents: isScrolled ? 'none' : 'auto' 
+        }}>
+          <span>Scroll</span>
+          <div className="arrow-icon">
+            <FiChevronDown size={22} />
+          </div>
+        </div>
+
       </div>
     </>
   );

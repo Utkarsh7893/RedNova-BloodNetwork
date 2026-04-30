@@ -18,19 +18,24 @@ export default function AboutPage() {
   const navigate = useNavigate();
 
   // carousel images
-  const [imageUrl1, setImageUrl1] = useState(null);
-  const [imageUrl2, setImageUrl2] = useState(null);
-  const [imageUrl3, setImageUrl3] = useState(null);
-  const [imageUrl4, setImageUrl4] = useState(null);
-  const [imageUrl5, setImageUrl5] = useState(null);
-  const [imageUrl6, setImageUrl6] = useState(null);
+  const [imageUrl1, setImageUrl1] = useState("https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=800&q=80");
+  const [imageUrl2, setImageUrl2] = useState("https://images.unsplash.com/photo-1576671494552-5a6d9d87c000?w=800&q=80");
+  const [imageUrl3, setImageUrl3] = useState("https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&q=80");
+  const [imageUrl4, setImageUrl4] = useState("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&q=80");
+  const [imageUrl5, setImageUrl5] = useState("https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&q=80");
+  const [imageUrl6, setImageUrl6] = useState("https://images.unsplash.com/photo-1582719471324-7eb38c9ce722?w=800&q=80");
 
-  useEffect(() => { (async () => setImageUrl1(await fetchRandomImage4()))(); }, []);
-  useEffect(() => { (async () => setImageUrl2(await fetchRandomImage5()))(); }, []);
-  useEffect(() => { (async () => setImageUrl3(await fetchRandomImage6()))(); }, []);
-  useEffect(() => { (async () => setImageUrl4(await fetchRandomImage7()))(); }, []);
-  useEffect(() => { (async () => setImageUrl5(await fetchRandomImage8()))(); }, []);
-  useEffect(() => { (async () => setImageUrl6(await fetchRandomImage9()))(); }, []);
+  useEffect(() => {
+    const fetchImages = async () => {
+      try { const img = await fetchRandomImage4(); if (img) setImageUrl1(img); } catch (e) {}
+      try { const img = await fetchRandomImage5(); if (img) setImageUrl2(img); } catch (e) {}
+      try { const img = await fetchRandomImage6(); if (img) setImageUrl3(img); } catch (e) {}
+      try { const img = await fetchRandomImage7(); if (img) setImageUrl4(img); } catch (e) {}
+      try { const img = await fetchRandomImage8(); if (img) setImageUrl5(img); } catch (e) {}
+      try { const img = await fetchRandomImage9(); if (img) setImageUrl6(img); } catch (e) {}
+    };
+    fetchImages();
+  }, []);
 
   const carouselImages = [imageUrl1, imageUrl2, imageUrl3];
   const [carouselIndex, setCarouselIndex] = useState(0);
