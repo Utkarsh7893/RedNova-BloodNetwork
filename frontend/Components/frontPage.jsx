@@ -454,6 +454,87 @@ export default function FrontPage() {
           color: var(--ls-crimson);
         }
 
+        /* ── Bottom Section Special Hover Buttons ── */
+        .hero-bottom-btn {
+          position: relative;
+          overflow: hidden;
+          width: 100%;
+          justify-content: center;
+          font-size: 15px;
+          padding: 14px 16px;
+          border-radius: 14px;
+          text-decoration: none;
+          font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.4s ease;
+          z-index: 1;
+        }
+        .hero-bottom-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          z-index: -1;
+          transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hero-bottom-btn:hover::before {
+          left: 0;
+        }
+
+        /* Explicitly dismiss hover effect ON CLICK as requested */
+        .hero-bottom-btn:active::before {
+          left: -100% !important;
+          transition: none !important;
+        }
+
+        /* Primary: Register */
+        .hero-bottom-btn-primary {
+          background: rgba(213,0,0,0.05);
+          border: 1.5px solid rgba(213,0,0,0.3);
+          color: #D50000; /* Darker red for light mode visibility */
+        }
+        .hero-bottom-btn-primary::before {
+          background: linear-gradient(90deg, #FF1744, #D50000);
+        }
+        .hero-bottom-btn-primary:hover {
+          color: #fff;
+          border-color: transparent;
+          box-shadow: 0 8px 25px rgba(255,23,68,0.5);
+          transform: translateY(-2px);
+        }
+        .hero-bottom-btn-primary:active {
+          color: #D50000 !important;
+          box-shadow: none !important;
+          border-color: rgba(213,0,0,0.3) !important;
+          transform: scale(0.98) !important;
+        }
+
+        /* Secondary: Blood Banks */
+        .hero-bottom-btn-secondary {
+          background: rgba(0,137,123,0.05);
+          border: 1.5px solid rgba(0,137,123,0.3);
+          color: #00897B; /* Darker teal for light mode visibility */
+        }
+        .hero-bottom-btn-secondary::before {
+          background: linear-gradient(90deg, #00C9B1, #00897B);
+        }
+        .hero-bottom-btn-secondary:hover {
+          color: #fff;
+          border-color: transparent;
+          box-shadow: 0 8px 25px rgba(0,201,177,0.5);
+          transform: translateY(-2px);
+        }
+        .hero-bottom-btn-secondary:active {
+          color: #00897B !important;
+          box-shadow: none !important;
+          border-color: rgba(0,137,123,0.3) !important;
+          transform: scale(0.98) !important;
+        }
+
         /* ── Right panel — floating glass cards ── */
         .hero-right {
           display: flex;
@@ -463,9 +544,9 @@ export default function FrontPage() {
           animation: ls-fade-up 0.7s 0.2s ease both;
         }
         .hero-glass-card {
-          background: color-mix(in srgb, var(--ls-surface) 85%, transparent);
-          backdrop-filter: blur(24px) saturate(180%);
-          -webkit-backdrop-filter: blur(24px) saturate(180%);
+          background: color-mix(in srgb, var(--ls-surface) 40%, transparent);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
           border: 1px solid var(--ls-border);
           border-radius: 20px;
           padding: 22px 26px;
@@ -538,9 +619,9 @@ export default function FrontPage() {
 
         /* Light Mode Glass Background */
         .light-mode-glass {
-          background: color-mix(in srgb, var(--ls-surface) 85%, transparent) !important;
-          backdrop-filter: blur(24px) saturate(180%) !important;
-          -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+          background: color-mix(in srgb, var(--ls-surface) 40%, transparent) !important;
+          backdrop-filter: blur(6px) saturate(140%) !important;
+          -webkit-backdrop-filter: blur(6px) saturate(140%) !important;
           border-radius: 24px;
           padding: 24px !important;
           box-shadow: 0 16px 40px rgba(0,0,0,0.12);
@@ -882,12 +963,12 @@ export default function FrontPage() {
                 "Every 2 seconds someone in the world needs blood. Your donation
                 is their lifeline. Be the reason someone gets to go home."
               </p>
-              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                <Link to="/registerdonor" className="hero-cta-primary" style={{ flex: 1, justifyContent: 'center', fontSize: 14, padding: '10px 16px' }}>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Link to="/registerdonor" className="hero-bottom-btn hero-bottom-btn-primary">
                   Register as Donor
                 </Link>
-                <Link to="/bloodbank" className="hero-cta-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: 14, padding: '10px 16px' }}>
-                  Blood Banks
+                <Link to="/bloodbank" className="hero-bottom-btn hero-bottom-btn-secondary">
+                  Search Blood Banks
                 </Link>
               </div>
             </div>
