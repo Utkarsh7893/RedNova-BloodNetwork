@@ -2,115 +2,104 @@ import React, { useEffect, useRef, useState } from "react";
 import { fetchRandomImage1, fetchRandomImage2, fetchRandomImage3 } from './api';
 import * as THREE from "three";
 import { io } from "socket.io-client";
-import { Link,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "./Navbar.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function DashBoard() {
   const navigate = useNavigate();
-
-  const [imageUrl1, setImageUrl1] = useState(null);
-  useEffect(() => {
-    async function loadImage1() {
-      const url = await fetchRandomImage1();
-      setImageUrl1(url);
-    }
-    loadImage1();
-  }, []);
-
-  const [imageUrl2, setImageUrl2] = useState(null);
-  useEffect(() => {
-    async function loadImage2() {
-      const url = await fetchRandomImage2();
-      setImageUrl2(url);
-    }
-    loadImage2();
-  }, []);
-
-  const [imageUrl3, setImageUrl3] = useState(null);
-  useEffect(() => {
-    async function loadImage3() {
-      const url = await fetchRandomImage3();
-      setImageUrl3(url);
-    }
-    loadImage3();
-  }, []);
-
   const mountRef = useRef(null);
   const socketRef = useRef(null);
 
-  // data states
-  const [banks, setBanks] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [stats, setStats] = useState({ totalUsers: 0, totalDonationsLiters: 0, liveNow: 0 });
+  const [imageUrl1, setImageUrl1] = useState(null);
+  const [imageUrl2, setImageUrl2] = useState(null);
+  const [imageUrl3, setImageUrl3] = useState(null);
 
-  // carousel images (sample URLs) — replace or fetch from API if needed
-  const carouselImages = [
-    imageUrl1, imageUrl2, imageUrl3,
+  useEffect(() => { (async () => setImageUrl1(await fetchRandomImage1()))(); }, []);
+  useEffect(() => { (async () => setImageUrl2(await fetchRandomImage2()))(); }, []);
+  useEffect(() => { (async () => setImageUrl3(await fetchRandomImage3()))(); }, []);
 
-  ];
+  const carouselImages = [imageUrl1, imageUrl2, imageUrl3];
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  // counters animated states
+  const [banks, setBanks] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [usersCount, setUsersCount] = useState(0);
   const [donationsCount, setDonationsCount] = useState(0);
   const [liveNowCount, setLiveNowCount] = useState(0);
+  const [userLocation, setUserLocation] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // fetch initial data
+  // Clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatClock = (date) => {
+    return {
+      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      day: date.toLocaleDateString('en-US', { weekday: 'long' }),
+      fullDate: date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+    };
+  };
+  const clockData = formatClock(currentTime);
+
+  const campaigns = [
+    { id: 1, name: "City Center Blood Drive", location: "Downtown Plaza", urgency: "urgent", need: "High (All Types)", instructions: "Please drink plenty of water before arriving." },
+    { id: 2, name: "Community Health Camp", location: "Northside Community Hall", urgency: "moderate", need: "Moderate (O-, B-)", instructions: "Bring an ID. Free checkups available." },
+    { id: 3, name: "University Campus Run", location: "Main Library Square", urgency: "relaxed", need: "Low (General Stock)", instructions: "Walk-ins welcome all day." }
+  ];
+
+  // Fetch data
   useEffect(() => {
     async function load() {
       try {
         const [banksRes, reqRes, statsRes] = await Promise.all([
           fetch(`${API_BASE}/api/banks`).then(r => r.json()),
           fetch(`${API_BASE}/api/requests`).then(r => r.json()),
-          fetch(`${API_BASE}/api/stats`).then(r => r.json())
+          fetch(`${API_BASE}/api/stats`).then(r => r.json()),
         ]);
         setBanks(banksRes || []);
         setRequests(reqRes || []);
-        setStats(statsRes || { totalUsers: 0, totalDonationsLiters: 0, liveNow: 0 });
-
-        // animate counters to those targets
         animateCounters(statsRes || {});
       } catch (err) {
-        console.error("Failed to fetch", err);
+        console.error("Fetch failed:", err);
       }
     }
     load();
   }, []);
 
-  // socket.io setup
+  // Socket.io
   useEffect(() => {
     socketRef.current = io(API_BASE);
-    const socket = socketRef.current;
-
-    socket.on("connect", () => console.log("socket connected:", socket.id));
-    socket.on("bankUpdated", (payload) => {
-      // update local bank list for real-time updates
-      setBanks(prev => prev.map(b => (String(b._id) === String(payload.bankId) ? { ...b, stock: payload.stock } : b)));
-    });
-    socket.on("requestCreated", (payload) => {
-      setRequests(prev => [payload, ...prev]);
-    });
-
-    return () => { socket.disconnect(); };
+    const s = socketRef.current;
+    s.on("bankUpdated", (p) => setBanks(prev => prev.map(b => String(b._id) === String(p.bankId) ? { ...b, stock: p.stock } : b)));
+    s.on("requestCreated", (p) => setRequests(prev => [p, ...prev]));
+    return () => s.disconnect();
   }, []);
 
-  // three.js background
+  // Geolocation
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos =>
+      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }), () => {}
+    );
+  }, []);
+
+  // Three.js
   useEffect(() => {
     const el = mountRef.current;
     if (!el) return;
-
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, el.clientWidth / el.clientHeight, 0.1, 1000);
     camera.position.z = 6;
-
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(el.clientWidth, el.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
-    renderer.setClearColor(0x000000, 0); // fully transparent
+    renderer.setClearColor(0x000000, 0);
     el.appendChild(renderer.domElement);
-
-    // points particles
     const particlesCount = 180;
     const positions = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount; i++) {
@@ -120,12 +109,9 @@ export default function DashBoard() {
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xaa2b2b, size: 0.12, opacity: 0.85, transparent: true });
-    const pts = new THREE.Points(geo, mat);
-    scene.add(pts);
-
-    let frame = 0;
-    let rafId;
+    const mat = new THREE.PointsMaterial({ color: 0xC62828, size: 0.1, opacity: 0.7, transparent: true });
+    scene.add(new THREE.Points(geo, mat));
+    let frame = 0, rafId;
     const animate = () => {
       frame += 0.01;
       const arr = geo.attributes.position.array;
@@ -139,18 +125,12 @@ export default function DashBoard() {
       rafId = requestAnimationFrame(animate);
     };
     animate();
-
     const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     };
-
     window.addEventListener("resize", handleResize);
-
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", handleResize);
@@ -159,464 +139,448 @@ export default function DashBoard() {
     };
   }, []);
 
-  // carousel auto advance
+  // Carousel
   useEffect(() => {
     const id = setInterval(() => setCarouselIndex(i => (i + 1) % carouselImages.length), 4000);
     return () => clearInterval(id);
   }, []);
 
-  // helper: animate counters smoothly to stats
-  function animateCounters(targets = { totalUsers: 0, totalDonationsLiters: 0, liveNow: 0 }) {
+  function animateCounters(targets = {}) {
     const startTime = performance.now();
     const duration = 1400;
-    const from = { u: 0, d: 0, l: 0 };
     const to = { u: targets.totalUsers || 0, d: targets.totalDonationsLiters || 0, l: targets.liveNow || 0 };
     const step = (now) => {
       const t = Math.min((now - startTime) / duration, 1);
-      const ease = (x) => 1 - Math.pow(1 - x, 3);
-      setUsersCount(Math.floor(from.u + ease(t) * (to.u - from.u)));
-      setDonationsCount(Math.floor(from.d + ease(t) * (to.d - from.d)));
-      setLiveNowCount(Math.floor(from.l + ease(t) * (to.l - from.l)));
+      const ease = x => 1 - Math.pow(1 - x, 3);
+      setUsersCount(Math.floor(ease(t) * to.u));
+      setDonationsCount(Math.floor(ease(t) * to.d));
+      setLiveNowCount(Math.floor(ease(t) * to.l));
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }
 
-  // small fmt
-  const fmt = n => (n || 0).toLocaleString();
-
-  // calculate distance (Haversine) between user's lat/lng and bank coords [lng,lat]
   function calcDistanceKm(userLat, userLng, bankCoords) {
-    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toRad = d => (d * Math.PI) / 180;
     const [lng, lat] = bankCoords;
     const R = 6371;
-    const dLat = toRad(lat - userLat);
-    const dLon = toRad(lng - userLng);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(userLat)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    const a = Math.sin(toRad(lat - userLat) / 2) ** 2
+      + Math.cos(toRad(userLat)) * Math.cos(toRad(lat)) * Math.sin(toRad(lng - userLng) / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // OPTIONAL: get user's location to compute distances (ask permission)
-  const [userLocation, setUserLocation] = useState(null);
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    }, () => { /* ignore errors */ });
-  }, []);
+  const fmt = n => (n || 0).toLocaleString();
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap');
+        html, body { height: auto !important; overflow-y: auto !important; }
 
-        html, body {
-            height: auto !important;
-            overflow-y: auto !important;
+        .db-page {
+          min-height: 100vh;
+          background: var(--ls-bg);
+          position: relative;
         }
-        .db-page { 
-            min-height:100vh; 
-            font-family: Inter, system-ui, -apple-system, Roboto, "Segoe UI", Arial;
-            background:
-              radial-gradient(circle at top left, rgba(255, 180, 180, 0.35), transparent 45%),
-              linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
+        .db-bg {
+          position: fixed; inset: 0;
+          width: 100vw; height: 100vh;
+          z-index: 0; pointer-events: none;
         }
-        .db-bg { 
-          position: fixed; 
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 0;
-          pointer-events: none;
-        }
-        .content-wrap {
-          max-width: 1560px;      /* choose your width */
-          margin: 0 auto;         /* center it */
-          padding: 0 16px;        /* mobile breathing space */
-        }
-        .db-content { position: relative; z-index: 5; padding-top: 18px; padding-bottom: 50px; }
-
-        .navbar-glass {
-          background: linear-gradient(
-            135deg,
-            rgba(183, 28, 28, 0.45),
-            rgba(255, 120, 120, 0.25)
-          );
-          backdrop-filter: blur(14px) saturate(140%);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+        .db-wrap {
+          position: relative; z-index: 5;
+          max-width: 1400px; margin: 0 auto;
+          padding: 28px 20px 60px;
         }
 
-        .nav-link {
-          font-weight: 500;
-          color: #5c1a1a !important;
+        /* Counter cards */
+        .db-counters {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 28px;
         }
-
-        .nav-link:hover {
-          color: #b71c1c !important;
-        }
-
-        .navbar-brand { 
-          font-family: Manrope, Inter, system-ui;
-          letter-spacing: -0.3px;
-          color: #7B1E1E !important; 
-          font-weight: 700; 
-        }
-
-        h5, h6 {
-          font-weight: 700;
-          color: #6b1414;
-        }
-
-        .db-carousel { 
-          position: relative; 
-          width:100%; 
-          height:360px; 
-          border-radius: 18px;
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
-          overflow:hidden; 
-          background: rgba(0,0,0,0.03);
-        }
-        .db-carousel img { 
-          position:absolute; 
-          left:0; 
-          top:0; 
-          width:100%; 
-          height:100%; 
-          object-fit:cover; 
-          opacity:0; 
-          transition:opacity 900ms ease; 
-          filter: saturate(1.15) contrast(1.08);
-        }
-        .db-carousel img.active { opacity: 1; }
-
-        .db-carousel-indicators { position:absolute; bottom:12px; left:50%; transform: translateX(-50%); display:flex; gap:8px; z-index:10; }
-        .db-carousel-indicators button { width:10px; height:10px; border-radius:50%; border:0; background: rgba(255,255,255,0.78); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
-        .db-carousel-indicators button.active { background: #b71c1c; transform: scale(1.25); }
-
-        .counters-grid { 
-          display:grid; 
-          grid-template-columns: 
-          repeat(3,1fr); 
-          gap:18px; 
-          margin-top: 22px; 
-        }
-        .counter-card {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.65),
-            rgba(255, 215, 215, 0.55)
-          );
+        .db-counter-card {
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px);
+          border: 1px solid var(--ls-border);
           border-radius: 16px;
-          padding: 22px;
-          box-shadow: 0 18px 45px rgba(183, 28, 28, 0.18);
+          padding: 20px 24px;
+          box-shadow: var(--ls-shadow-sm);
         }
-
-        .counter-number {
-          font-size: 34px;
+        .db-counter-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--ls-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 6px;
+        }
+        .db-counter-num {
+          font-family: 'Manrope', sans-serif;
+          font-size: 36px;
           font-weight: 800;
-          background: linear-gradient(135deg, #b71c1c, #ff5e5e);
+          background: var(--ls-grad-crimson);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
-        .banks-list { margin-top: 18px; }
-        .bank-item { 
-          display:flex; 
-          justify-content:space-between; 
-          align-items:center; 
-          padding:12px; 
-          border-radius:10px; 
-          background: rgba(183, 28, 28, 0.22); 
-          box-shadow: 0 6px 20px rgba(0,0,0,0.04); 
-          margin-bottom:10px; 
+        /* Carousel */
+        .db-carousel {
+          position: relative; width: 100%; height: 340px;
+          border-radius: 18px; overflow: hidden;
+          box-shadow: var(--ls-shadow-lg);
+          background: rgba(0,0,0,0.05);
         }
-        .bank-item {
+        .db-carousel img {
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          object-fit: cover; opacity: 0;
+          transition: opacity 900ms ease;
+          filter: saturate(1.1) contrast(1.05);
+        }
+        .db-carousel img.active { opacity: 1; }
+        .db-carousel-dots {
+          position: absolute; bottom: 12px; left: 50%;
+          transform: translateX(-50%);
+          display: flex; gap: 7px; z-index: 10;
+        }
+        .db-carousel-dot {
+          width: 9px; height: 9px; border-radius: 50%; border: 0;
+          background: rgba(255,255,255,0.65);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.15);
           cursor: pointer;
-          transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.55),
-            rgba(255, 220, 220, 0.45)
-          );
+          transition: all 0.2s;
+        }
+        .db-carousel-dot.active {
+          background: var(--ls-crimson); transform: scale(1.3);
+        }
+
+        /* Section headers */
+        .db-section-title {
+          font-family: 'Manrope', sans-serif;
+          font-weight: 800;
+          font-size: 18px;
+          color: var(--ls-text);
+          margin-bottom: 14px;
+          display: flex; align-items: center; gap: 8px;
+        }
+
+        /* Request cards */
+        .db-request-item {
+          padding: 14px 16px;
           border-radius: 14px;
-        }
-
-        .bank-item:hover {
-          transform: translateY(-4px) scale(1.02);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-          background: rgba(255, 246, 246, 0.6);
-          backdrop-filter: blur(2px);
-        }
-        .requests-feed { margin-top: 14px; }
-        .request-item { 
-          padding:10px;
-          backdrop-filter: blur(6px);
-          box-shadow: 0 4px 14px rgba(0,0,0,0.04); 
-          margin-bottom:10px;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.55),
-            rgba(255, 220, 220, 0.45)
-          );
-          border-radius: 14px; 
-        }
-        .request-item {
+          margin-bottom: 10px;
+          background: var(--ls-grad-card);
+          border: 1px solid var(--ls-border);
+          box-shadow: var(--ls-shadow-sm);
           cursor: pointer;
-          transition: transform .2s ease, box-shadow .2s ease, background 0.2s ease;
+          transition: transform 0.2s, box-shadow 0.2s;
         }
-        .request-item:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-          background: rgba(255, 246, 246, 0.6);
-          backdrop-filter: blur(2px);
-
+        .db-request-item:hover {
+          transform: translateY(-3px);
+          box-shadow: var(--ls-shadow-md);
         }
 
-        .btn-danger {
-          background: linear-gradient(135deg, #b71c1c, #ff4d4d);
-          border: none;
-          font-weight: 600;
-          box-shadow: 0 10px 30px rgba(183, 28, 28, 0.35);
+        /* Bank cards */
+        .db-bank-item {
+          padding: 12px 14px;
+          border-radius: 14px;
+          margin-bottom: 10px;
+          background: var(--ls-grad-card);
+          border: 1px solid var(--ls-border);
+          box-shadow: var(--ls-shadow-sm);
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .db-bank-item:hover {
+          transform: translateY(-3px) scale(1.01);
+          box-shadow: var(--ls-shadow-md);
         }
 
-        .btn-danger:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 16px 40px rgba(183, 28, 28, 0.45);
+        /* Quick actions sidebar */
+        .db-quick-actions {
+          background: var(--ls-surface);
+          border: 1px solid var(--ls-border);
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: var(--ls-shadow-sm);
+          margin-bottom: 16px;
         }
 
-        .btn-outline-danger {
-          background: transparent;
-          border: 2px solid transparent;
-          background-image:
-            linear-gradient(rgba(255, 230, 230, 0.55), rgba(255, 230, 230, 0.55)),
-            linear-gradient(135deg, #b71c1c, #ff5e5e);
-          background-origin: border-box;
-          background-clip: padding-box, border-box;
-          color: #7b1e1e;
-          font-weight: 600;
+        /* Info cards */
+        .db-info-card {
+          background: var(--ls-surface);
+          border: 1px solid var(--ls-border);
+          border-radius: 14px;
+          padding: 18px;
+          height: 100%;
+          box-shadow: var(--ls-shadow-sm);
         }
 
-        .btn-outline-danger:hover {
-          background-image:
-            linear-gradient(rgba(255, 210, 210, 0.75), rgba(255, 210, 210, 0.75)),
-            linear-gradient(135deg, #b71c1c, #ff5e5e);
-          color: #8b1e1e;
-          box-shadow: 0 10px 28px rgba(183, 28, 28, 0.25);
-          transform: translateY(-1px);
+        /* Clock Component */
+        .db-clock {
+          background: var(--ls-grad-card);
+          border: 1px solid var(--ls-border);
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: var(--ls-shadow-sm);
+          margin-bottom: 16px;
+          text-align: center;
         }
-
-        .footer-pro {
-          margin-top: 64px;
-          padding: 56px 28px;
-          background:
-            radial-gradient(circle at top right, rgba(255, 90, 90, 0.18), transparent 40%),
-            linear-gradient(180deg, #2f2626 0%, #241e1e 100%);
-          color: #dcdcdc;
-          border-radius: 18px;
-          box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.35);
+        .db-clock-time {
+          font-family: 'Manrope', sans-serif;
+          font-weight: 800;
+          font-size: 32px;
+          color: var(--ls-crimson);
+          letter-spacing: 1px;
         }
-
-        .footer-pro h6 {
-          font-family: Manrope, Inter, system-ui;
-          font-weight: 700;
-          letter-spacing: 0.3px;
-          color: #ffffff;
-        }
-
-        .footer-pro a {
-          color: #ff9a9a;
-          text-decoration: none;
+        .db-clock-date {
+          font-size: 14px;
+          color: var(--ls-text-muted);
           font-weight: 500;
+          margin-top: 4px;
         }
 
-        .footer-pro a:hover {
-          color: #ffd6d6;
-          text-decoration: underline;
+        /* Campaigns */
+        .db-campaign {
+          background: var(--ls-surface);
+          border: 1px solid var(--ls-border);
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 12px;
+          box-shadow: var(--ls-shadow-sm);
+          transition: transform 0.2s;
         }
+        .db-campaign:hover { transform: translateY(-3px); }
+        .urgency-urgent { color: #d32f2f; background: #ffebee; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .urgency-moderate { color: #f57c00; background: #fff3e0; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .urgency-relaxed { color: #388e3c; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-        .footer-bottom {
-          border-top: 1px solid rgba(255, 255, 255, 0.12);
-          margin-top: 26px;
-          padding-top: 16px;
-          color: #bdbdbd;
+        /* Footer */
+        .db-footer {
+          margin-top: 60px;
+          padding: 48px 28px;
+          background: var(--ls-surface);
+          border: 1px solid var(--ls-border);
+          border-radius: 18px;
+          box-shadow: var(--ls-shadow-md);
+        }
+        .db-footer h6 {
+          font-family: 'Manrope', sans-serif;
+          font-weight: 700;
+          color: var(--ls-text);
+          margin-bottom: 12px;
+        }
+        .db-footer a {
+          color: var(--ls-crimson);
+          font-weight: 500;
+          display: block;
+          margin-bottom: 6px;
+          font-size: 14px;
+        }
+        .db-footer a:hover { color: var(--ls-crimson-lt); }
+        .db-footer-bottom {
+          border-top: 1px solid var(--ls-border);
+          margin-top: 24px;
+          padding-top: 14px;
+          color: var(--ls-text-muted);
           font-size: 13px;
         }
+        .db-footer p { color: var(--ls-text-sub); font-size: 14px; }
 
-        @media (max-width: 991px) {
-          .db-carousel { height: 240px; }
-          .counters-grid { grid-template-columns: 1fr; }
+        @media (max-width: 768px) {
+          .db-counters { grid-template-columns: 1fr; }
+          .db-carousel { height: 220px; }
         }
       `}</style>
 
       <div className="db-page">
-        {/* three.js mount */}
         <div ref={mountRef} className="db-bg" />
+        <Navbar />
 
-        <div className="db-content container-fluid">
-          <div className="content-wrap">
-            {/* NAV */}
-            <nav className="navbar navbar-expand-lg navbar-glass rounded-3 mb-3">
-              <div className="container-fluid">
-                <Link className="navbar-brand" to="/dashboard">lifeStream🩸</Link>
-                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-                  <span className="navbar-toggler-icon" />
-                </button>
-                <div className="collapse navbar-collapse" id="navMenu">
-                  <ul className="navbar-nav ms-auto">
-                    <li className="nav-item"><Link className="nav-link" to="/about">About</Link></li>
-                    <li className="nav-item"><Link className="nav-link" to="/donors">Donors</Link></li>
-                    <li className="nav-item"><Link className="nav-link" to="/bloodbank">Blood Bank</Link></li>
-                    <li className="nav-item"><Link className="nav-link" to="/events">Events</Link></li>
-                    <li className="nav-item"><Link className="nav-link" to="/contact">Contact</Link></li>
-                  </ul>
-                </div>
-              </div>
-            </nav>
-
-            {/* Counters */}
-            <div className="counters-grid mt-1 mb-4">
-              <div className="counter-card">
-                <div className="small text-muted"><b>Registered Users</b></div>
-                <div className="counter-number">{fmt(usersCount)}</div>
-              </div>
-              <div className="counter-card">
-                <div className="small text-muted"><b>Liters Donated</b></div>
-                <div className="counter-number">{fmt(donationsCount)}</div>
-              </div>
-              <div className="counter-card">
-                <div className="small text-muted"><b>People Online</b></div>
-                <div className="counter-number">{fmt(liveNowCount)}</div>
-              </div>
+        <div className="db-wrap">
+          {/* Counters */}
+          <div className="db-counters">
+            <div className="db-counter-card">
+              <div className="db-counter-label">👥 Registered Users</div>
+              <div className="db-counter-num">{fmt(usersCount)}</div>
             </div>
+            <div className="db-counter-card">
+              <div className="db-counter-label">🩸 Liters Donated</div>
+              <div className="db-counter-num">{fmt(donationsCount)}</div>
+            </div>
+            <div className="db-counter-card">
+              <div className="db-counter-label">🟢 People Online Now</div>
+              <div className="db-counter-num">{fmt(liveNowCount)}</div>
+            </div>
+          </div>
 
-            {/* CAROUSEL & sidebar */}
-            <div className="row gx-4">
-              <div className="col-lg-8">
-                <div className="db-carousel">
-                  {carouselImages.map((src, i) => (
-                    <img key={i} src={src} className={i === carouselIndex ? "active" : ""} alt={`slide-${i}`} />
+          {/* Main grid */}
+          <div className="row gx-4">
+            {/* Left: carousel + live requests */}
+            <div className="col-lg-8">
+              <div style={{ marginBottom: 16 }}>
+                <Link to="/admin" className="ls-btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', color: 'var(--ls-crimson)', fontWeight: 600 }}>
+                  🛡️ Access Admin Portal
+                </Link>
+              </div>
+              <div className="db-carousel mb-3">
+                {carouselImages.map((src, i) => (
+                  <img key={i} src={src} className={i === carouselIndex ? 'active' : ''} alt={`slide-${i}`} />
+                ))}
+                <div className="db-carousel-dots">
+                  {carouselImages.map((_, i) => (
+                    <button key={i} className={`db-carousel-dot${i === carouselIndex ? ' active' : ''}`} onClick={() => setCarouselIndex(i)} />
                   ))}
-                  <div className="db-carousel-indicators">
-                    {carouselImages.map((_, i) => (
-                      <button key={i} className={i === carouselIndex ? "active" : ""} onClick={() => setCarouselIndex(i)} />
-                    ))}
-                  </div>
                 </div>
+              </div>
 
-                {/* Requests feed */}
-                <div className="requests-feed mt-3">
-                  <h5>Live Requests</h5>
-                  {requests.map(r => (
-                    <div
-                      key={r._id}
-                      className="request-item p-3 rounded-3 shadow-sm mb-2"
-                      onClick={() => navigate(`/dashboardrequests/${r._id}`)}
-                    >
-                      <div style={{ fontWeight:700 }}>
-                        {r.requesterName} —
-                        <span style={{ color:"#b71c1c" }}>{r.bloodGroup}</span>
+              {/* Live Requests */}
+              <div className="db-section-title mt-3">
+                <span>🔴</span> Live Blood Requests
+              </div>
+              {requests.length === 0 && (
+                <div style={{ color: 'var(--ls-text-muted)', fontSize: 14, padding: '12px 0' }}>No active requests right now.</div>
+              )}
+              {requests.map(r => (
+                <div key={r._id} className="db-request-item" onClick={() => navigate(`/dashboardrequests/${r._id}`)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--ls-text)' }}>
+                        {r.requesterName} —{' '}
+                        <span className="blood-badge" style={{ width: 'auto', height: 'auto', padding: '2px 10px', borderRadius: 8, fontSize: 13 }}>
+                          {r.bloodGroup}
+                        </span>
                       </div>
-
-                      <div className="small text-muted">
+                      <div style={{ fontSize: 13, color: 'var(--ls-text-muted)', marginTop: 4 }}>
                         {r.hospital} • {new Date(r.createdAt).toLocaleString()}
                       </div>
-
-                      <div style={{ fontWeight:700 }}>{r.units} unit(s)</div>
-                      <div className="small text-muted">{r.status}</div>
                     </div>
-                  ))}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--ls-crimson)' }}>{r.units} unit(s)</div>
+                      <div style={{ fontSize: 12, color: 'var(--ls-text-muted)', marginTop: 2, textTransform: 'capitalize' }}>{r.status}</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div className="col-lg-4">
-                <div className="p-3 mb-3" style={{ background: "rgba(183, 28, 28, 0.22)", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.06)" }}>
-                  <h6 style={{ marginBottom: 8 }}>Quick Actions</h6>
-                  <Link className="btn btn-danger w-100 mb-2" to="/requestblood">Request Blood</Link>
-                  <Link className="btn btn-outline-danger w-100" to="/registerdonor">Register as Donor</Link>
-                </div>
-
-                <div className="p-3 banks-list">
-                  <h6>Nearby Blood Banks</h6>
-                  {banks.length === 0 && <div className="small text-muted">No blood banks yet</div>}
-                  {banks.map(b => {
-                    const dist = userLocation ? (calcDistanceKm(userLocation.lat, userLocation.lng, b.location.coordinates).toFixed(1) + " km") : "—";
-                    // compute low stock flag
-                    const totalUnits = Object.values(b.stock || {}).reduce((a, c) => a + (c || 0), 0);
-                    return (
-                      <div className="bank-item" key={b._id} onClick={() => navigate(`/bloodbank/${b._id}`)}>
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{b.name}</div>
-                          <div className="small text-muted">{b.address}</div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div className="small">Units: <strong>{totalUnits}</strong></div>
-                          <div className="small text-muted">{dist}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Info cards */}
-            <div className="row mt-0 g-3">
-              <div className="col-md-4">
-                <div className="p-3 rounded-3 shadow-sm h-100" style={{ backgroundColor: "rgba(183, 28, 28, 0.22)" }}>
-                  <h6>How it works</h6>
-                  <p className="small text-muted mb-0">Register → Find donors/banks → Book appointment → Donate.</p>
-                </div>
+            {/* Right: quick actions + banks */}
+            <div className="col-lg-4">
+              <div className="db-clock">
+                <div className="db-clock-time">{clockData.time}</div>
+                <div className="db-clock-date">{clockData.day}, {clockData.fullDate}</div>
               </div>
-              <div className="col-md-4">
-                <div className="p-3 rounded-3 shadow-sm h-100" style={{ backgroundColor: "rgba(183, 28, 28, 0.22)" }}>
-                  <h6>Eligibility</h6>
-                  <p className="small text-muted mb-0">18–65 yrs, healthy, min weight ~50kg. Check local guidlines.</p>
-                </div>
+
+              <div className="db-quick-actions">
+                <div className="db-section-title" style={{ marginBottom: 12 }}>⚡ Quick Actions</div>
+                <Link to="/requestblood" className="ls-btn-primary w-100 mb-2" style={{ justifyContent: 'center', marginBottom: 10, display: 'flex' }}>
+                  🩸 Request Blood
+                </Link>
+                <Link to="/registerdonor" className="ls-btn-outline w-100" style={{ justifyContent: 'center', display: 'flex' }}>
+                  ➕ Register as Donor
+                </Link>
               </div>
-              <div className="col-md-4">
-                <div className="p-3 rounded-3 shadow-sm h-100" style={{ backgroundColor: "rgba(183, 28, 28, 0.22)" }}>
-                  <h6>Emergency Requests</h6>
-                  <p className="small text-muted mb-0">Use Request Blood to notify donors and banks in the area quickly.</p>
+
+              <div className="db-section-title">🏥 Nearby Blood Banks</div>
+              {banks.length === 0 && (
+                <div style={{ color: 'var(--ls-text-muted)', fontSize: 14 }}>No banks found.</div>
+              )}
+              {banks.map(b => {
+                const dist = userLocation
+                  ? calcDistanceKm(userLocation.lat, userLocation.lng, b.location.coordinates).toFixed(1) + ' km'
+                  : '—';
+                const totalUnits = Object.values(b.stock || {}).reduce((a, c) => a + (c || 0), 0);
+                return (
+                  <div key={b._id} className="db-bank-item" onClick={() => navigate(`/bloodbank/${b._id}`)}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--ls-text)', fontSize: 14 }}>{b.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ls-text-muted)' }}>{b.address}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ls-crimson)' }}>{totalUnits} units</div>
+                      <div style={{ fontSize: 12, color: 'var(--ls-text-muted)' }}>{dist}</div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="db-section-title mt-4">📣 Active Campaigns</div>
+              {campaigns.map(c => (
+                <div key={c.id} className="db-campaign">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ls-text)' }}>{c.name}</div>
+                    <span className={`urgency-${c.urgency}`}>{c.urgency}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginBottom: 4 }}>📍 {c.location}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginBottom: 8 }}>🩸 Need: {c.need}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ls-text-muted)', marginBottom: 10 }}><i>{c.instructions}</i></div>
+                  <button className="ls-btn-primary w-100" style={{ fontSize: 13, padding: '8px', justifyContent: 'center' }} onClick={() => alert(`Registered for ${c.name}!`)}>Register for Campaign</button>
                 </div>
+              ))}
+
+              {/* Email Subscription Interface */}
+              <div className="db-quick-actions mt-4" style={{ textAlign: 'center' }}>
+                <div className="db-section-title" style={{ justifyContent: 'center', marginBottom: 8 }}>💌 Campaign Alerts</div>
+                <p style={{ fontSize: 13, color: 'var(--ls-text-muted)', marginBottom: 12 }}>Receive detailed emails about urgent blood needs in your area.</p>
+                <form onSubmit={(e) => { e.preventDefault(); alert('Subscribed successfully to campaign alerts!'); }} style={{ display: 'flex', gap: 8 }}>
+                  <input type="email" placeholder="Your email address" required style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--ls-border)', background: 'var(--ls-bg-alt)', color: 'var(--ls-text)', fontSize: 14, outline: 'none' }} />
+                  <button type="submit" className="ls-btn-primary" style={{ padding: '0 16px', borderRadius: 10 }}>Subscribe</button>
+                </form>
               </div>
             </div>
-
-            {/* Footer (expanded and professional) */}
-            <footer className="footer-pro mt-5">
-              <div className="row">
-                <div className="col-md-4">
-                  <h6>BloodCare Initiative</h6>
-                  <p className="small">Connecting donors and blood banks with those in need. Trusted network and local centers.</p>
-                  <p className="small">Follow: <a href="#">Twitter</a> • <a href="#">Facebook</a> • <a href="#">Instagram</a></p>
-                </div>
-                <div className="col-md-2">
-                  <h6>Explore</h6>
-                  <ul className="list-unstyled small">
-                    <li><Link to="/about">About</Link></li>
-                    <li><Link to="/donors">Donors</Link></li>
-                    <li><Link to="/bloodbank">Blood Banks</Link></li>
-                  </ul>
-                </div>
-                <div className="col-md-3">
-                  <h6>Support</h6>
-                  <ul className="list-unstyled small">
-                    <li><Link to="/volunteer">Volunteer</Link></li>
-                    <li><Link to="/awareness">Awareness</Link></li>
-                    <li><Link to="/privacypolicy">Privacy Policy</Link></li>
-                  </ul>
-                </div>
-                <div className="col-md-3">
-                  <h6>Contact</h6>
-                  <p className="small mb-1">📩 support@bloodcare.org</p>
-                  <p className="small mb-1">📞 +91 123 456 7890</p>
-                  <p className="small">🏢 123 Donation St, City</p>
-                </div>
-              </div>
-              <div className="footer-bottom mt-4">© {new Date().getFullYear()} BloodCare — Saving lives together.</div>
-            </footer>
           </div>
+
+          {/* Info cards */}
+          <div className="row mt-4 g-3">
+            {[
+              { icon: '💡', title: 'How it works', body: 'Register → Find donors or blood banks → Book appointment → Donate and save lives.' },
+              { icon: '✅', title: 'Eligibility', body: '18–65 yrs, healthy, min weight ~50 kg. Check with local guidelines before donating.' },
+              { icon: '🚨', title: 'Emergency', body: 'Use "Request Blood" to instantly notify nearby donors and blood banks in real-time.' },
+            ].map(c => (
+              <div key={c.title} className="col-md-4">
+                <div className="db-info-card">
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>{c.icon}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--ls-text)', marginBottom: 6 }}>{c.title}</div>
+                  <p style={{ fontSize: 13.5, color: 'var(--ls-text-sub)', margin: 0 }}>{c.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <footer className="db-footer">
+            <div className="row">
+              <div className="col-md-4 mb-3">
+                <h6>lifeStream 🩸</h6>
+                <p>Connecting donors and blood banks with those in need. A trusted real-time network.</p>
+                <p style={{ fontSize: 13, color: 'var(--ls-text-muted)' }}>Follow us: Twitter · Facebook · Instagram</p>
+              </div>
+              <div className="col-md-2 mb-3">
+                <h6>Explore</h6>
+                <Link to="/about">About</Link>
+                <Link to="/donors">Donors</Link>
+                <Link to="/bloodbank">Blood Banks</Link>
+                <Link to="/events">Events</Link>
+              </div>
+              <div className="col-md-3 mb-3">
+                <h6>Support</h6>
+                <Link to="/registerdonor">Volunteer</Link>
+                <Link to="/awareness">Awareness</Link>
+                <Link to="/privacypolicy">Privacy Policy</Link>
+              </div>
+              <div className="col-md-3 mb-3">
+                <h6>Contact</h6>
+                <p style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginBottom: 4 }}>📩 support@lifestream.org</p>
+                <p style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginBottom: 4 }}>📞 +91 123 456 7890</p>
+                <p style={{ fontSize: 13, color: 'var(--ls-text-sub)' }}>🏢 123 Donation St, City</p>
+              </div>
+            </div>
+            <div className="db-footer-bottom">© {new Date().getFullYear()} lifeStream — Saving lives together.</div>
+          </footer>
         </div>
       </div>
     </>

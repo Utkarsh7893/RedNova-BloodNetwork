@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import 'leaflet/dist/leaflet.css';
+import Navbar from "./Navbar.jsx";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
@@ -36,6 +38,7 @@ const API_BASE = import.meta.env.VITE_API_URL;
 export default function DonorRegister() {
   const mountRef = useRef(null);
   const messageRef = useRef(null); // Scroll ref
+  const navigate = useNavigate();
 
   // --------------------
   // THREE.JS BACKGROUND
@@ -184,83 +187,122 @@ export default function DonorRegister() {
         html, body { height: auto !important; overflow-y: auto !important; }
         .donor-page {
           min-height: 100vh;
-          font-family: Inter, system-ui, -apple-system, Roboto;
-          background:
-            radial-gradient(circle at top left, rgba(255,180,180,0.35), transparent 45%),
-            linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
+          background: var(--ls-bg);
         }
         .donor-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
         .donor-content {
           position: relative;
           z-index: 5;
-          max-width: 1080px;
-          margin: auto;
-          padding: 40px 40px 100px; /* reduced top spacing */
+          max-width: 860px;
+          margin: 0 auto;
+          padding: 32px 20px 80px;
         }
         .donor-card {
-          background: linear-gradient(
-            135deg,
-            rgba(255,255,255,0.85),
-            rgba(255,240,240,0.65)
-          );
-          backdrop-filter: blur(14px);
-          border-radius: 32px;
-          padding: 50px 60px;
-          position: relative;
-          box-shadow: 0 28px 80px rgba(183,28,28,0.35);
-          margin-bottom: 40px;
-          border: 1px solid rgba(255,255,255,0.5);
-          transition: box-shadow 0.3s ease;
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px) saturate(150%);
+          border: 1px solid var(--ls-border);
+          border-radius: 20px;
+          padding: 32px;
+          margin-bottom: 24px;
+          box-shadow: var(--ls-shadow-lg);
         }
-        .donor-card:hover { box-shadow: 0 0 48px rgba(183,28,28,0.45); }
-        .donor-card h3 { color: #b71c1c; font-weight: 800; margin-bottom: 8px; }
-        input, select, textarea { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid #e2c0c0; margin-top: 8px; font-size: 14px; background: white; color: #333; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #b71c1c; box-shadow: 0 0 0 2px rgba(183,28,28,0.15); }
-        .btn-main { margin-top: 24px; width: 100%; padding: 16px; border-radius: 16px; border: none; cursor: pointer; background: linear-gradient(135deg, #b71c1c, #ff6b6b); color: white; font-weight: 800; letter-spacing: 0.3px; box-shadow: 0 16px 40px rgba(183,28,28,0.45); transition: all 0.3s ease; }
-        .btn-main:hover { transform: translateY(-3px); box-shadow: 0 24px 60px rgba(183,28,28,0.65); }
-        .bloodTag { padding: 10px 20px; border-radius: 16px; background: #b71c1c; color: white; font-weight: 700; font-size: 18px; }
-        .leaflet-container { border-radius: 16px; height: 350px; margin-top: 8px; }
+        .donor-card h3 {
+          font-family: 'Manrope', sans-serif;
+          color: var(--ls-text);
+          font-weight: 800;
+          font-size: 22px;
+          margin-bottom: 6px;
+        }
+        .donor-card p { color: var(--ls-text-sub); font-size: 14px; }
+        .rd-label {
+          display: block;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--ls-text-sub);
+          margin-bottom: 5px;
+        }
+        .rd-input {
+          width: 100%;
+          padding: 11px 14px;
+          border-radius: 10px;
+          border: 1.5px solid var(--ls-border);
+          background: var(--ls-bg-alt);
+          color: var(--ls-text);
+          font-size: 14px;
+          font-family: inherit;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          outline: none;
+          margin-top: 0;
+        }
+        .rd-input:focus {
+          border-color: var(--ls-crimson);
+          box-shadow: 0 0 0 3px rgba(198,40,40,0.15);
+        }
+        .rd-input::placeholder { color: var(--ls-text-muted); }
+        .btn-main {
+          margin-top: 20px;
+          width: 100%;
+          padding: 14px;
+          border-radius: 12px;
+          border: none;
+          cursor: pointer;
+          background: var(--ls-grad-crimson);
+          color: white;
+          font-weight: 700;
+          font-size: 15px;
+          box-shadow: 0 10px 28px rgba(198,40,40,0.35);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(198,40,40,0.50); }
+        .bloodTag { padding: 10px 20px; border-radius: 12px; background: var(--ls-grad-crimson); color: white; font-weight: 800; font-size: 18px; }
+        .leaflet-container { border-radius: 14px; height: 320px; margin-top: 6px; }
       `}</style>
 
       <div className="donor-page">
         <div ref={mountRef} className="donor-bg" />
+        <Navbar />
 
         <div className="donor-content">
           <div className="donor-card" ref={messageRef}>
-            <h3>Register as Donor</h3>
-            <p style={{ color: "#555", marginBottom: "16px" }}>Your contribution may save someone’s life.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+              <button onClick={() => navigate(-1)} style={{ background: 'var(--ls-bg-alt)', border: '1px solid var(--ls-border)', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ls-text)' }}>
+                ←
+              </button>
+              <h3 style={{ margin: 0 }}>Register as a Donor</h3>
+            </div>
+            <p style={{ marginBottom: "16px" }}>Your contribution may save someone's life. Fill in the details below.</p>
 
             {successMsg && <div style={{ color: "#2e7d32", fontWeight: 600, marginBottom: "12px" }}>{successMsg}</div>}
             {errorMsg && <div style={{ color: "#b71c1c", fontWeight: 600, marginBottom: "12px" }}>{errorMsg}</div>}
 
             <form onSubmit={submitForm}>
               <div className="row g-3">
-                <div className="col-md-6"><label>Full Name</label><input type="text" name="name" value={form.name} onChange={update} required/></div>
-                <div className="col-md-6"><label>Blood Group</label><select name="bloodGroup" value={form.bloodGroup} onChange={update} required><option value="">Select</option>{bloodGroups.map(bg => <option key={bg} value={bg}>{bg}</option>)}</select></div>
-                <div className="col-md-4"><label>Age</label><input type="number" name="age" value={form.age} onChange={update} required/></div>
-                <div className="col-md-4"><label>Gender</label><select name="gender" value={form.gender} onChange={update}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
-                <div className="col-md-4"><label>Last Donation</label><input type="date" name="lastDonation" value={form.lastDonation} onChange={update}/></div>
-                <div className="col-md-6"><label>Phone</label><input type="text" name="phone" value={form.phone} onChange={update} required/></div>
-                <div className="col-md-6"><label>Email</label><input type="email" name="email" value={form.email} onChange={update}/></div>
-                <div className="col-md-6"><label>City</label><input type="text" name="city" value={form.city} onChange={update} required/></div>
-                <div className="col-md-6"><label>State</label><input type="text" name="state" value={form.state} onChange={update} required/></div>
+                <div className="col-md-6"><label className="rd-label">Full Name</label><input className="rd-input" type="text" name="name" placeholder="Your full name" value={form.name} onChange={update} required/></div>
+                <div className="col-md-6"><label className="rd-label">Blood Group</label><select className="rd-input" name="bloodGroup" value={form.bloodGroup} onChange={update} required><option value="">Select group</option>{bloodGroups.map(bg => <option key={bg} value={bg}>{bg}</option>)}</select></div>
+                <div className="col-md-4"><label className="rd-label">Age</label><input className="rd-input" type="number" name="age" placeholder="25" value={form.age} onChange={update} required/></div>
+                <div className="col-md-4"><label className="rd-label">Gender</label><select className="rd-input" name="gender" value={form.gender} onChange={update}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+                <div className="col-md-4"><label className="rd-label">Last Donation Date</label><input className="rd-input" type="date" name="lastDonation" value={form.lastDonation} onChange={update}/></div>
+                <div className="col-md-6"><label className="rd-label">Phone</label><input className="rd-input" type="text" name="phone" placeholder="+91 XXXXX XXXXX" value={form.phone} onChange={update} required/></div>
+                <div className="col-md-6"><label className="rd-label">Email</label><input className="rd-input" type="email" name="email" placeholder="your@email.com" value={form.email} onChange={update}/></div>
+                <div className="col-md-6"><label className="rd-label">City</label><input className="rd-input" type="text" name="city" placeholder="Mumbai" value={form.city} onChange={update} required/></div>
+                <div className="col-md-6"><label className="rd-label">State</label><input className="rd-input" type="text" name="state" placeholder="Maharashtra" value={form.state} onChange={update} required/></div>
 
-                {/* Leaflet Map */}
                 <div className="col-12">
-                  <label>Select Your Location</label>
+                  <label className="rd-label">📍 Select Your Location on Map</label>
                   <MapContainer center={form.lat && form.lng ? [form.lat, form.lng] : [20.5937, 78.9629]} zoom={5} className="leaflet-container">
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors"/>
                     <LocationMarker form={form} setForm={setForm} />
                   </MapContainer>
+                  <div style={{ fontSize: 12, color: 'var(--ls-text-muted)', marginTop: 6 }}>Click on the map to pin your location</div>
                 </div>
 
                 <div className="col-12">
-                  <label>Health Information</label>
-                  <textarea name="healthInfo" rows={4} value={form.healthInfo} onChange={update} placeholder="Health notes, allergies, medications..." />
+                  <label className="rd-label">Health Information (optional)</label>
+                  <textarea className="rd-input" name="healthInfo" rows={3} value={form.healthInfo} onChange={update} placeholder="Health notes, allergies, medications..." style={{ resize: 'vertical' }}/>
                 </div>
               </div>
 
-              <button type="submit" className="btn-main">Submit Registration</button>
+              <button type="submit" className="btn-main">✅ Submit Registration</button>
             </form>
           </div>
 

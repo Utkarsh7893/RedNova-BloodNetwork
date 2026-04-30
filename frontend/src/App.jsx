@@ -17,7 +17,7 @@ import RequestBlood from '../Components/requestBlood';
 import BloodBankDetails from '../Components/bloodBankDetails';
 import PrivacyPolicy from '../Components/privacyPolicy';
 import Awareness from '../Components/awareness';
-// import DashboardRequestDetails from '../Components/DashboardRequestDetails';
+import AdminDashboard from '../Components/adminDashboard';
 import { Routes, Route } from "react-router-dom";
 // import AddUser from '../Components/AddUser';
 // import AddItem from '../Components/AddItem';
@@ -56,6 +56,7 @@ export default function App() {
       <Route path="/dashboardrequests/:requestId" element={<DashboardRequests />} />
       <Route path="/privacypolicy" element={<PrivacyPolicy />} />
       <Route path="/awareness" element={<Awareness />} />
+      <Route path="/admin" element={<AdminDashboard />} />
     </Routes>
   );
 }

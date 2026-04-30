@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
+import Navbar from "./Navbar.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function BloodBanks() {
   const mountRef = useRef(null);
+  const navigate = useNavigate();
 
   const [banks, setBanks] = useState([]);
   const [search, setSearch] = useState("");
@@ -143,10 +146,8 @@ export default function BloodBanks() {
 
         .bb-page {
           min-height:100vh;
-          background:
-            radial-gradient(circle at top left, rgba(255,180,180,0.35), transparent 45%),
-            linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
-          font-family: Inter, system-ui, -apple-system, Roboto;
+          background: var(--ls-bg);
+          position: relative;
         }
 
         .bb-bg {
@@ -159,36 +160,52 @@ export default function BloodBanks() {
         .bb-content {
           position: relative;
           z-index: 5;
-          max-width: 1560px;     /* same philosophy as Dashboard */
+          max-width: 1400px;
           margin: 0 auto;
-          padding: 32px 22px 70px;
+          padding: 28px 20px 60px;
         }
-
 
         .bb-title {
-          text-align:center;
-          font-size:38px;
-          font-weight:800;
-          color:#7b1e1e;
-          margin-bottom:28px;
+          font-family: 'Manrope', sans-serif;
+          font-size: 28px;
+          font-weight: 800;
+          color: var(--ls-text);
+          margin-bottom: 4px;
         }
+        .bb-sub { color: var(--ls-text-muted); font-size: 14px; margin-bottom: 24px; }
 
         .bb-controls {
           display: flex;
-          gap: 14px;
-          justify-content: center;
+          gap: 12px;
           flex-wrap: wrap;
-          margin-bottom: 34px;
-          padding: 18px;
-          border-radius: 18px;
+          margin-bottom: 24px;
+          padding: 16px;
+          border-radius: 16px;
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px);
+          border: 1px solid var(--ls-border);
+          box-shadow: var(--ls-shadow-sm);
+        }
 
-          background: linear-gradient(
-            135deg,
-            rgba(183, 28, 28, 0.25),
-            rgba(255, 120, 120, 0.18)
-          );
-          backdrop-filter: blur(14px) saturate(140%);
-          box-shadow: 0 18px 45px rgba(183, 28, 28, 0.25);
+        .bb-controls input,
+        .bb-controls select {
+          flex: 1;
+          min-width: 180px;
+          padding: 11px 16px;
+          border-radius: 12px;
+          border: 1.5px solid var(--ls-border);
+          outline: none;
+          font-size: 14px;
+          font-weight: 500;
+          background: var(--ls-bg-alt);
+          color: var(--ls-text);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .bb-controls input::placeholder { color: var(--ls-text-muted); }
+        .bb-controls input:focus,
+        .bb-controls select:focus {
+          border-color: var(--ls-crimson);
+          box-shadow: 0 0 0 3px rgba(198,40,40,0.12);
         }
 
         /* Search + select base */
@@ -294,52 +311,57 @@ export default function BloodBanks() {
 
 
         .bank-card {
-          background: linear-gradient(
-            135deg,
-            rgba(255,255,255,0.6),
-            rgba(255,220,220,0.45)
-          );
+          background: var(--ls-surface);
+          backdrop-filter: blur(14px);
+          border: 1px solid var(--ls-border);
           border-radius:16px;
           padding:18px;
-          margin-bottom:14px;
+          margin-bottom:12px;
           cursor:pointer;
-          box-shadow:0 12px 32px rgba(0,0,0,0.15);
-          transition:.25s ease;
+          box-shadow: var(--ls-shadow-sm);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .bank-card:hover {
-          transform: translateY(-4px) scale(1.02);
-          box-shadow:0 20px 45px rgba(0,0,0,0.25);
-          backdrop-filter: blur(4px);
+          transform: translateY(-4px);
+          box-shadow: var(--ls-shadow-md);
         }
 
         .bank-name {
-          font-size:20px;
-          font-weight:800;
-          color:#b71c1c;
+          font-size: 17px;
+          font-weight: 800;
+          color: var(--ls-text);
+          font-family: 'Manrope', sans-serif;
         }
 
         .expand-box {
-          margin-top:14px;
-          padding:14px;
-          border-radius:12px;
-          background:rgba(255,246,246,0.65);
+          margin-top: 14px;
+          padding: 14px;
+          border-radius: 12px;
+          background: rgba(0,137,123,0.06);
+          border: 1px solid var(--ls-border-alt);
         }
 
-        table {
-          width:100%;
-        }
-
-        td {
-          padding:6px 4px;
+        table { width:100%; }
+        td { padding: 6px 4px; color: var(--ls-text-sub); font-size: 14px; }
+        @media (max-width:768px) {
+          .bb-controls { padding: 12px; }
+          .bb-controls input, .bb-controls select { min-width: unset; width: 100%; }
         }
       `}</style>
 
       <div className="bb-page">
         <div ref={mountRef} className="bb-bg" />
+        <Navbar />
 
         <div className="bb-content">
-          <div className="bb-title">🏥 Blood Banks</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+            <button onClick={() => navigate(-1)} style={{ background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ls-text)' }}>
+              ←
+            </button>
+            <div className="bb-title" style={{ margin: 0 }}>🏥 Blood Banks</div>
+          </div>
+          <div className="bb-sub">Find blood banks near you sorted by name or available units</div>
 
           <div className="bb-controls">
             <input

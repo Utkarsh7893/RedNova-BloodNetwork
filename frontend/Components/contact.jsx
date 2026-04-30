@@ -1,9 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
+import Navbar from "./Navbar.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
+const IMAGES = [
+  "/img/contact_1_1777551550109.png",
+  "/img/contact_2_1777551565011.png",
+  "/img/contact_3_1777551823453.png",
+  "/img/contact_4_1777551866707.png"
+];
+
 export default function Contact() {
+  const navigate = useNavigate();
   /* ================= THREE.JS BACKGROUND ================= */
   const bgRef = useRef(null);
 
@@ -87,6 +97,15 @@ export default function Contact() {
   });
   const [successMsg, setSuccessMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    const int = setInterval(() => {
+      setCarouselIdx(p => (p + 1) % IMAGES.length);
+    }, 3500);
+    return () => clearInterval(int);
+  }, []);
 
   const update = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -120,12 +139,8 @@ export default function Contact() {
       <style>{`
         .contact-page {
           min-height: 100vh;
-          padding: 70px 20px;
-          font-family: Inter, system-ui, -apple-system, Roboto;
-
-          background:
-            radial-gradient(circle at top left, rgba(255,180,180,0.35), transparent 45%),
-            linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
+          background: var(--ls-bg);
+          position: relative;
         }
 
         .contact-bg {
@@ -139,96 +154,115 @@ export default function Contact() {
           position: relative;
           z-index: 5;
           max-width: 1100px;
-          margin: auto;
+          margin: 0 auto;
+          padding: 36px 20px 70px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        @media(min-width: 900px) {
+          .contact-wrapper { flex-direction: row; align-items: stretch; }
+          .contact-carousel-col { flex: 1.2; }
+          .contact-form-col { flex: 1; }
+        }
+
+        .contact-carousel-col {
+          border-radius: 20px;
+          overflow: hidden;
+          position: relative;
+          min-height: 400px;
+          box-shadow: var(--ls-shadow-lg);
+        }
+
+        .contact-carousel-img {
+          position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease;
+        }
+        .contact-carousel-img.active { opacity: 1; }
+
+        .contact-overlay {
+          position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+          display: flex; flex-direction: column; justify-content: flex-end; padding: 40px; color: white;
+        }
+
+        .contact-form-col {
+          display: flex; flex-direction: column;
         }
 
         .contact-card {
-          background: linear-gradient(
-            135deg,
-            rgba(255,255,255,0.7),
-            rgba(255,220,220,0.5)
-          );
-          backdrop-filter: blur(12px);
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px) saturate(150%);
+          border: 1px solid var(--ls-border);
           border-radius: 20px;
-          padding: 40px;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.25);
-          animation: glowPulse 6s ease-in-out infinite;
+          padding: 36px 32px;
+          box-shadow: var(--ls-shadow-lg);
+          flex: 1;
         }
 
         .contact-title {
-          color: #b71c1c;
+          font-family: 'Manrope', sans-serif;
           font-weight: 800;
+          font-size: 26px;
+          color: var(--ls-text);
           margin-bottom: 6px;
         }
 
         .contact-subtitle {
-          color: #7b1e1e;
-          opacity: 0.85;
-          margin-bottom: 28px;
+          color: var(--ls-text-muted);
+          margin-bottom: 24px;
+          font-size: 14px;
         }
 
         .contact-info-box {
-          background: rgba(255,245,245,0.8);
+          background: rgba(0,137,123,0.06);
+          border: 1px solid var(--ls-border-alt);
           border-radius: 14px;
-          padding: 20px;
-          margin-bottom: 28px;
+          padding: 18px 20px;
+          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .contact-info-item {
           display: flex;
-          gap: 12px;
-          margin-bottom: 14px;
-          font-size: 15px;
+          gap: 10px;
+          font-size: 14px;
+          color: var(--ls-text-sub);
+          align-items: center;
         }
 
         .contact-info-item a {
-          color: #b71c1c;
-          text-decoration: none;
+          color: var(--ls-teal);
+          font-weight: 500;
         }
-
-        .contact-info-item a:hover {
-          text-decoration: underline;
-        }
+        .contact-info-item a:hover { text-decoration: underline; }
 
         .form-label {
           font-weight: 600;
-          font-size: 14px;
-          color: #6b1414;
+          font-size: 13px;
+          color: var(--ls-text-sub);
+          display: block;
+          margin-bottom: 5px;
         }
 
         .btn-main {
           margin-top: 16px;
           padding: 14px;
-          border-radius: 14px;
+          border-radius: 12px;
           border: none;
           cursor: pointer;
-
-          background: linear-gradient(135deg, #b71c1c, #ff6b6b);
+          width: 100%;
+          background: var(--ls-grad-crimson);
           color: white;
           font-weight: 700;
-
-          box-shadow:
-            0 12px 28px rgba(183,28,28,0.45),
-            inset 0 -2px 0 rgba(0,0,0,0.15);
-
-          transition: all 0.25s ease;
+          font-size: 15px;
+          box-shadow: 0 10px 28px rgba(198,40,40,0.35);
+          transition: transform 0.2s, box-shadow 0.2s;
         }
-
         .btn-main:hover {
-          transform: translateY(-3px);
-          box-shadow:
-            0 18px 45px rgba(183,28,28,0.65),
-            0 0 22px rgba(255,120,120,0.55);
-        }
-
-        .btn-main:active {
-          transform: scale(0.97);
-        }
-
-        @keyframes glowPulse {
-          0% { box-shadow: 0 0 0 rgba(255,120,120,0.25); }
-          50% { box-shadow: 0 0 45px rgba(255,120,120,0.45); }
-          100% { box-shadow: 0 0 0 rgba(255,120,120,0.25); }
+          transform: translateY(-2px);
+          box-shadow: 0 16px 40px rgba(198,40,40,0.50);
         }
 
         .whatsapp-float {
@@ -236,105 +270,94 @@ export default function Contact() {
           bottom: 28px;
           right: 28px;
           z-index: 999;
-
-          width: 60px;
-          height: 60px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
-
           background: linear-gradient(135deg, #25d366, #1ebe57);
           color: white;
-          font-size: 26px;
-
+          font-size: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
           text-decoration: none;
-
-          box-shadow:
-            0 12px 28px rgba(37, 211, 102, 0.55),
-            0 0 0 rgba(37, 211, 102, 0.4);
-
+          box-shadow: 0 10px 28px rgba(37,211,102,0.50);
           transition: all 0.3s ease;
-          animation: whatsappPulse 3s infinite;
+          animation: waPulse 3s infinite;
         }
-
         .whatsapp-float:hover {
-          transform: translateY(-6px) scale(1.05);
-
-          box-shadow:
-            0 18px 45px rgba(37, 211, 102, 0.75),
-            0 0 22px rgba(37, 211, 102, 0.7);
+          transform: translateY(-4px) scale(1.08);
+          box-shadow: 0 18px 40px rgba(37,211,102,0.70);
         }
-
-        .whatsapp-float:active {
-          transform: scale(0.95);
-        }
-
-        @keyframes whatsappPulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
-          }
-          70% {
-            box-shadow: 0 0 0 18px rgba(37, 211, 102, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-          }
-        }
-
-        .whatsapp-tooltip {
-          position: absolute;
-          right: 70px;
-          background: #1ebe57;
-          color: white;
-          padding: 6px 10px;
-          border-radius: 8px;
-          font-size: 13px;
-          white-space: nowrap;
-          opacity: 0;
-          transform: translateY(6px);
-          transition: all 0.25s ease;
-          pointer-events: none;
-        }
-
-        .whatsapp-float:hover .whatsapp-tooltip {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-
-      `}</style>
+        @keyframes waPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(37,211,102,0.5); }
+          70%  { box-shadow: 0 0 0 18px rgba(37,211,102,0); }
+          100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+        }`}</style>
 
       <div className="contact-page">
         <div ref={bgRef} className="contact-bg" />
+        <Navbar />
 
         <div className="contact-wrapper">
-          <div className="contact-card">
-            <h3 className="contact-title">Contact BloodCare</h3>
-            <p className="contact-subtitle">
-              We’re here to help. Reach out for support, partnerships, or urgent assistance.
-            </p>
-
-            <div className="contact-info-box">
-              <div className="contact-info-item">🏢 123 Donation Street, Health City</div>
-              <div className="contact-info-item">📩 support@bloodcare.org</div>
-              <div className="contact-info-item">📞 +91 123 456 7890</div>
-              <div className="contact-info-item">⏰ Mon – Sat, 9 AM – 7 PM</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+            <button onClick={() => navigate(-1)} style={{ background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ls-text)' }}>
+              ←
+            </button>
+            <h2 style={{ margin: 0, fontFamily: "'Manrope', sans-serif", fontWeight: 800, color: 'var(--ls-text)' }}>Contact Us</h2>
+          </div>
+          {/* Carousel Column */}
+          <div className="contact-carousel-col">
+            {IMAGES.map((img, idx) => (
+              <img key={img} src={img} className={`contact-carousel-img ${idx === carouselIdx ? 'active' : ''}`} alt="Community Impact" />
+            ))}
+            <div className="contact-overlay">
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: '28px', marginBottom: '8px' }}>Global Impact</h2>
+              <p style={{ fontSize: '15px', opacity: 0.9, maxWidth: '500px', margin: 0 }}>
+                Donating blood is more than just a medical contribution. It's a commitment to our global community, advancing Sustainable Development Goals like Zero Hunger, Climate Action, and Good Health for All.
+              </p>
             </div>
+          </div>
 
-            {successMsg && <div className="alert alert-success">{successMsg}</div>}
-            {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+          <div className="contact-form-col">
+            <div className="contact-card">
+              <h3 className="contact-title">📬 Contact lifeStream</h3>
+              <p className="contact-subtitle">
+                We're here to help. Reach out for support, partnerships, or urgent assistance.
+              </p>
 
-            <form onSubmit={submitForm}>
-              <input className="form-control mb-3" name="name" placeholder="Full Name" required value={form.name} onChange={update} />
-              <input className="form-control mb-3" name="email" type="email" placeholder="Email Address" required value={form.email} onChange={update} />
-              <input className="form-control mb-3" name="subject" placeholder="Subject" required value={form.subject} onChange={update} />
-              <textarea className="form-control mb-3" rows="5" name="message" placeholder="Message" required value={form.message} onChange={update} />
+              <div className="contact-info-box">
+                <div className="contact-info-item">🏢 123 Donation Street, Health City</div>
+                <div className="contact-info-item">📩 support@lifestream.org</div>
+                <div className="contact-info-item">📞 +91 123 456 7890</div>
+                <div className="contact-info-item">⏰ Mon – Sat, 9 AM – 7 PM</div>
+              </div>
 
-              <button className="btn-main w-100">📤 Send Message</button>
-            </form>
+              {successMsg && <div className="alert alert-success">{successMsg}</div>}
+              {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+
+              <form onSubmit={submitForm}>
+                <div style={{ marginBottom: 14 }}>
+                  <label className="form-label">Full Name</label>
+                  <input className="ls-input" name="name" placeholder="Your full name" required value={form.name} onChange={update} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label className="form-label">Email Address</label>
+                  <input className="ls-input" name="email" type="email" placeholder="your@email.com" required value={form.email} onChange={update} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label className="form-label">Subject</label>
+                  <input className="ls-input" name="subject" placeholder="How can we help?" required value={form.subject} onChange={update} />
+                </div>
+                <div style={{ marginBottom: 4 }}>
+                  <label className="form-label">Message</label>
+                  <textarea className="ls-input" rows="5" name="message" placeholder="Your message..." required value={form.message} onChange={update} style={{ resize: 'vertical', minHeight: 100 }} />
+                </div>
+                <button className="btn-main">📤 Send Message</button>
+              </form>
+            </div>
           </div>
         </div>
+        
         <a
           href="https://wa.me/9219369399?text=Hello%20BloodCare,%20I%20need%20assistance."
           target="_blank"

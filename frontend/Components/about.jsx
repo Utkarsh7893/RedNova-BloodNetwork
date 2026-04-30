@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   fetchRandomImage4,
   fetchRandomImage5,
@@ -9,11 +9,13 @@ import {
   fetchRandomImage9,
 } from "./api";
 import * as THREE from "three";
+import Navbar from "./Navbar.jsx";
 
-const COMPANY_NAME = "LifeFlow Blood Monitoring System";
+const COMPANY_NAME = "lifeStream";
 
 export default function AboutPage() {
   const mountRef = useRef(null);
+  const navigate = useNavigate();
 
   // carousel images
   const [imageUrl1, setImageUrl1] = useState(null);
@@ -103,53 +105,47 @@ export default function AboutPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap');
-
         html, body { height:auto !important; overflow-y:auto !important; }
 
         .about-page {
-          font-family: Inter, system-ui, -apple-system, Roboto, "Segoe UI", Arial;
           min-height:100vh;
           position:relative;
-          background:
-            radial-gradient(circle at top left, rgba(255, 180, 180, 0.35), transparent 45%),
-            linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
+          background: var(--ls-bg);
         }
         .about-bg {
-          position: fixed;
-          inset:0;
-          z-index:0;
-          pointer-events:none;
+          position: fixed; inset:0; z-index:0; pointer-events:none;
         }
         .about-content {
-          position:relative;
-          z-index:5;
-          max-width:1560px;
-          margin:0 auto;
-          padding:20px 16px 50px;
+          position:relative; z-index:5;
+          max-width:1400px; margin:0 auto;
+          padding:28px 20px 60px;
         }
-
-        h2,h5,h6 { font-weight:700; color:#6b1414; }
+        h2 { font-weight:800; color:var(--ls-text); font-family:'Manrope',sans-serif; }
+        h5,h6 { font-weight:700; color:var(--ls-text); }
 
         .carousel {
           position:relative; width:100%; height:360px; border-radius:18px;
-          overflow:hidden; background: rgba(0,0,0,0.03); margin-bottom:24px;
-          box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+          overflow:hidden; background: var(--ls-surface); margin-bottom:24px;
+          box-shadow: var(--ls-shadow-lg);
         }
         .carousel img {
           position:absolute; left:0; top:0; width:100%; height:100%;
           object-fit:cover; opacity:0; transition:opacity 900ms ease;
-          filter: saturate(1.15) contrast(1.08);
+          filter: saturate(1.1) contrast(1.05);
         }
         .carousel img.active { opacity:1; }
 
         .section {
-          background: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,215,215,0.55));
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px);
+          border: 1px solid var(--ls-border);
           border-radius:16px;
           padding:24px;
           margin-bottom:24px;
-          box-shadow: 0 18px 45px rgba(183,28,28,0.18);
+          box-shadow: var(--ls-shadow-sm);
+          color: var(--ls-text-sub);
         }
+        .section li { margin-bottom: 8px; color: var(--ls-text-sub); }
 
         .image-strip {
           display:flex; gap:16px; overflow-x:auto; padding-top:12px;
@@ -161,33 +157,14 @@ export default function AboutPage() {
         .image-strip img:hover { transform:scale(1.06); }
 
         .highlight {
-          background: linear-gradient(135deg,#b71c1c,#ff5e5e);
+          background: var(--ls-grad-crimson);
           color:white;
           padding:30px;
           border-radius:18px;
           margin-bottom:24px;
         }
-
-        .btn-top {
-          font-weight: 700;
-          font-size: 15px;
-          padding: 10px 22px;
-          border-radius: 12px;
-          background: #ffe6e6; /* soft base */
-          color: #b71c1c;
-          text-decoration: none;
-          transition: all 0.25s ease;
-          display: inline-block;
-          box-shadow: 0 8px 24px rgba(183,28,28,0.18);
-        }
-
-        .btn-top:hover {
-          background: linear-gradient(135deg, #b71c1c, #ff5e5e);
-          color: #fff;
-          transform: translateY(-2px) scale(1.05);
-          box-shadow: 0 14px 36px rgba(183,28,28,0.35);
-        }
-
+        .highlight h2 { color: white; }
+        .highlight p { color: rgba(255,255,255,0.9); }
 
         @media (max-width:991px) {
           .carousel { height:240px; }
@@ -196,6 +173,7 @@ export default function AboutPage() {
 
       <div className="about-page">
         <div className="about-bg" ref={mountRef} />
+        <Navbar />
         <div className="about-content">
 
           <div className="mb-4 d-flex gap-3">

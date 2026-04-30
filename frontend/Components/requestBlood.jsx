@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import 'leaflet/dist/leaflet.css';
+import Navbar from "./Navbar.jsx";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -178,77 +179,87 @@ export default function RequestBlood() {
     <>
       <style>{`
         html, body { height: auto !important; overflow-y: auto !important; }
-        .req-page { min-height: 100vh; font-family: Inter, system-ui, Roboto;
-          background: radial-gradient(circle at top left, rgba(255,180,180,0.35), transparent 45%),
-                      linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
-        }
+        .req-page { min-height: 100vh; background: var(--ls-bg); }
         .req-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-        .req-content { position: relative; z-index: 5; max-width: 1100px; margin: auto; padding: 50px 30px 80px; }
-        .req-card { position: relative; background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,220,220,0.55));
-          backdrop-filter: blur(14px); border-radius: 24px; padding: 50px 50px 60px; box-shadow: 0 28px 90px rgba(0,0,0,0.25);
+        .req-content { position: relative; z-index: 5; max-width: 780px; margin: 0 auto; padding: 28px 20px 80px; }
+        .req-card {
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px) saturate(150%);
+          border: 1px solid var(--ls-border);
+          border-radius: 20px;
+          padding: 32px;
+          box-shadow: var(--ls-shadow-lg);
         }
-        .req-card::before { content: ""; position: absolute; inset: -16px; border-radius: 28px;
-          background: radial-gradient(circle at top, rgba(183,28,28,0.2), transparent 60%); filter: blur(32px); z-index: -1;
+        .req-card h2 {
+          font-family: 'Manrope', sans-serif;
+          color: var(--ls-text);
+          font-weight: 800;
+          font-size: 24px;
+          margin-bottom: 6px;
         }
-        .req-card h2 { color: #b71c1c; font-weight: 800; font-size: 32px; margin-bottom: 12px; }
-        label { font-weight: 600; margin-top: 16px; display: block; }
-        input, select { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid #e2c0c0; margin-top: 8px; font-size: 15px; transition: all 0.2s ease; }
-        input:focus, select:focus { outline: none; border-color: #b71c1c; box-shadow: 0 0 0 3px rgba(183,28,28,0.15); }
-        .btn-main { margin-top: 28px; width: 100%; padding: 16px; border-radius: 16px; border: none; cursor: pointer;
-          background: linear-gradient(135deg, #b71c1c, #ff6b6b); color: white; font-weight: 800; font-size: 16px; letter-spacing: 0.4px; box-shadow: 0 16px 42px rgba(183,28,28,0.45); transition: all 0.3s ease;
+        .req-label { font-weight: 600; font-size: 13px; color: var(--ls-text-sub); display: block; margin-bottom: 5px; margin-top: 14px; }
+        .req-input {
+          width: 100%; padding: 11px 14px;
+          border-radius: 10px;
+          border: 1.5px solid var(--ls-border);
+          background: var(--ls-bg-alt);
+          color: var(--ls-text);
+          font-size: 14px; font-family: inherit;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          outline: none;
         }
-        .btn-main:hover { transform: translateY(-3px); box-shadow: 0 24px 60px rgba(183,28,28,0.65); }
-        .btn-main:active { transform: scale(0.97); }
-        .success-box { background: #e8f5e9; color: #2e7d32; padding: 16px; border-radius: 14px; margin-bottom: 18px; font-weight: 600; text-align: center; }
-        .error-box { background: #fdecea; color: #b71c1c; padding: 16px; border-radius: 14px; margin-bottom: 18px; font-weight: 600; text-align: center; }
-        .processing-box, .notify-box { margin: 22px 0 28px; padding: 20px; border-radius: 16px; text-align: center; font-weight: 600; }
-        .processing-box { background: rgba(255, 240, 240, 0.9); color: #b71c1c; }
-        .processing-box span { display: block; font-size: 14px; opacity: 0.85; margin-top: 6px; }
-        .pulse { width: 16px; height: 16px; background: #b71c1c; border-radius: 50%; margin: 0 auto 12px; animation: pulse 1.4s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(183,28,28,0.6); } 70% { box-shadow: 0 0 0 16px rgba(183,28,28,0); } 100% { box-shadow: 0 0 0 0 rgba(183,28,28,0); } }
-        .notify-box { background: linear-gradient(135deg, rgba(232,245,233,0.95), rgba(200,230,201,0.85)); color: #2e7d32; }
-        .notify-box span { display: block; font-size: 14px; margin-top: 6px; }
-        .react-leaflet-container { border-radius: 14px; margin-top: 8px; box-shadow: 0 10px 36px rgba(0,0,0,0.18); }
+        .req-input:focus { border-color: var(--ls-crimson); box-shadow: 0 0 0 3px rgba(198,40,40,0.15); }
+        .req-input::placeholder { color: var(--ls-text-muted); }
+        .btn-main { margin-top: 20px; width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+          background: var(--ls-grad-crimson); color: white; font-weight: 700; font-size: 15px;
+          box-shadow: 0 10px 28px rgba(198,40,40,0.35); transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(198,40,40,0.50); }
+        .btn-main:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+        .success-box { background: rgba(0,137,123,0.10); border: 1px solid rgba(0,137,123,0.25); color: var(--ls-teal); padding: 14px; border-radius: 12px; margin-bottom: 14px; font-weight: 600; text-align: center; }
+        .error-box { background: rgba(198,40,40,0.08); border: 1px solid rgba(198,40,40,0.20); color: var(--ls-crimson); padding: 14px; border-radius: 12px; margin-bottom: 14px; font-weight: 600; text-align: center; }
+        .processing-box { margin: 18px 0; padding: 16px; border-radius: 14px; text-align: center; font-weight: 600; background: rgba(198,40,40,0.06); color: var(--ls-crimson); border: 1px solid var(--ls-border); }
+        .processing-box span { display: block; font-size: 13px; opacity: 0.75; margin-top: 5px; }
+        .pulse { width: 14px; height: 14px; background: var(--ls-crimson); border-radius: 50%; margin: 0 auto 10px; animation: pulse 1.4s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(198,40,40,0.6); } 70% { box-shadow: 0 0 0 14px rgba(198,40,40,0); } 100% { box-shadow: 0 0 0 0 rgba(198,40,40,0); } }
+        .notify-box { margin: 18px 0; padding: 16px; border-radius: 14px; background: rgba(0,137,123,0.08); border: 1px solid var(--ls-border-alt); color: var(--ls-teal); text-align: center; font-weight: 600; }
+        .notify-box span { display: block; font-size: 13px; margin-top: 5px; color: var(--ls-text-muted); }
+        .leaflet-container { border-radius: 12px; margin-top: 8px; height: 300px !important; }
       `}</style>
 
       <div className="req-page">
         <div ref={mountRef} className="req-bg" />
+        <Navbar />
 
         <div className="req-content">
           <div className="req-card" ref={messageRef}>
-            <h2>Request Blood</h2>
+            <h2>🩸 Request Blood</h2>
+            <p style={{ color: 'var(--ls-text-muted)', fontSize: 14, marginBottom: 16 }}>
+              Submit an urgent blood request. Nearby donors and blood banks will be notified in real-time.
+            </p>
 
             {stage === "submitting" && (
               <div className="processing-box">
                 <div className="pulse" />
-                <p>Processing your blood request…</p>
-                <span>Notifying nearby donors & blood banks</span>
+                <p style={{ margin: 0 }}>Processing your request…</p>
+                <span>Notifying nearby donors &amp; blood banks</span>
               </div>
             )}
-
             {stage === "notified" && (
               <div className="notify-box">
-                <p>✅ Request submitted successfully</p>
-                <span>
-                  Donors and blood banks will be notified.<br />
-                  You may receive a response within <b>24–48 hours</b>.
-                </span>
+                <p style={{ margin: 0 }}>✅ Request submitted successfully</p>
+                <span>You may receive a response within <b>24–48 hours</b>.</span>
               </div>
             )}
-
             {success && <div className="success-box">Blood request submitted successfully.</div>}
             {error && <div className="error-box">{error}</div>}
 
-            <p className="text-muted">
-              Submit an urgent blood request. Nearby donors and blood banks will be notified in real-time.
-            </p>
-
             <form onSubmit={handleSubmit}>
-              <label>Patient / Requester Name</label>
-              <input name="requesterName" value={form.requesterName} onChange={handleChange} required />
+              <label className="req-label">Patient / Requester Name</label>
+              <input className="req-input" name="requesterName" placeholder="Full name" value={form.requesterName} onChange={handleChange} required />
 
-              <label>Blood Group</label>
-              <select name="bloodGroup" value={form.bloodGroup} onChange={handleChange} required>
+              <label className="req-label">Blood Group</label>
+              <select className="req-input" name="bloodGroup" value={form.bloodGroup} onChange={handleChange} required>
                 <option value="">Select</option>
                 <option>A+</option><option>A-</option>
                 <option>B+</option><option>B-</option>
@@ -256,13 +267,13 @@ export default function RequestBlood() {
                 <option>O+</option><option>O-</option>
               </select>
 
-              <label>Units Required</label>
-              <input type="number" min="1" name="units" value={form.units} onChange={handleChange} required />
+              <label className="req-label">Units Required</label>
+              <input className="req-input" type="number" min="1" name="units" value={form.units} onChange={handleChange} required />
 
-              <label>Hospital / Location</label>
-              <input name="hospital" value={form.hospital} onChange={handleChange} required />
+              <label className="req-label">Hospital / Location</label>
+              <input className="req-input" name="hospital" placeholder="Hospital name or address" value={form.hospital} onChange={handleChange} required />
 
-              <label>Select Location on Map</label>
+              <label className="req-label">📍 Select Location on Map</label>
               <MapContainer
                 center={form.lat && form.lng ? [form.lat, form.lng] : [20.5937, 78.9629]}
                 zoom={5}

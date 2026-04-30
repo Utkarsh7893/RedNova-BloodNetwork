@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import * as THREE from "three";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "./Navbar.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Donors() {
+  const navigate = useNavigate();
   const [donors, setDonors] = useState([]);
   const [filteredDonors, setFilteredDonors] = useState([]);
   const [search, setSearch] = useState("");
@@ -147,102 +149,98 @@ export default function Donors() {
     <>
       <style>{`
         html, body { height:auto !important; overflow-y:auto !important; }
-        .db-page { min-height:100vh; background:linear-gradient(180deg,#ffe6e6 0%,#f7caca 100%); font-family:Inter,sans-serif; position:relative; }
+        .db-page { min-height:100vh; background: var(--ls-bg); position: relative; }
         .db-bg { position:fixed; inset:0; width:100vw; height:100vh; z-index:0; pointer-events:none; }
-        .content-wrap { max-width:1560px; margin:0 auto; padding:16px; position:relative; z-index:5; }
-        h2 { font-weight:700; color:#6b1414; margin-bottom:6px; }
-        .filters-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
-        .search-box input, .form-select { padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.1); width:100%; }
-        .donor-card { 
-          background: linear-gradient(135deg, rgba(255,255,255,0.65), rgba(255,215,215,0.55)); 
-          border-radius:16px; 
-          padding:16px; 
-          margin-bottom:14px; 
-          box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        .content-wrap { max-width:1400px; margin:0 auto; padding:28px 20px 60px; position:relative; z-index:5; }
+        .page-title {
+          font-family: 'Manrope', sans-serif;
+          font-weight: 800; font-size: 28px;
+          color: var(--ls-text); margin-bottom: 4px;
         }
-        .donor-card:hover { transform:translateY(-4px); box-shadow:0 20px 42px rgba(0,0,0,0.18); }
-        .bloodTag { 
-          padding:6px 12px; 
-          border-radius:8px; 
-          font-weight:700; 
-          color:#fff; 
-          background:linear-gradient(135deg,#b71c1c,#ff4d4d);
-          text-align:center;
-        }
-        .btn-outline-danger { 
-          background: transparent;
-          border: 2px solid transparent;
-          background-image: linear-gradient(rgba(255,230,230,0.55), rgba(255,230,230,0.55)), linear-gradient(135deg, #b71c1c, #ff5e5e);
-          background-origin: border-box;
-          background-clip: padding-box, border-box;
-          color: #7b1e1e;
-          font-weight: 600;
-        }
-        .btn-outline-danger:hover {
-          background-image: linear-gradient(rgba(255,210,210,0.75), rgba(255,210,210,0.75)), linear-gradient(135deg,#b71c1c,#ff5e5e);
-          color:#8b1e1e;
-          box-shadow:0 10px 28px rgba(183,28,28,0.25);
-          transform: translateY(-1px);
-        }
+        .page-sub { color: var(--ls-text-muted); font-size: 14px; margin-bottom: 24px; }
+        .filters-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; align-items:center; }
         .search-input {
-          width: 100%;
-          padding: 12px 18px;
+          flex: 1; min-width: 200px;
+          padding: 11px 16px;
           border-radius: 12px;
-          border: none;
-          background: rgba(20, 20, 20, 0.75);
-          color: #fff;
-          backdrop-filter: blur(10px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+          border: 1.5px solid var(--ls-border);
+          background: var(--ls-bg-alt);
+          color: var(--ls-text);
           font-size: 15px;
           font-weight: 500;
-          transition: all 0.3s ease;
-        }
-        .search-input::placeholder {
-          color: rgba(255,255,255,0.6);
-        }
-        .search-input:focus {
+          transition: border-color 0.2s, box-shadow 0.2s;
           outline: none;
-          background: rgba(30, 30, 30, 0.85);
-          box-shadow: 0 12px 32px rgba(183,28,28,0.4);
         }
-
+        .search-input::placeholder { color: var(--ls-text-muted); }
+        .search-input:focus {
+          border-color: var(--ls-crimson);
+          box-shadow: 0 0 0 3px rgba(198,40,40,0.15);
+        }
         .blood-select {
-          width: 100%;
-          padding: 12px 14px;
+          padding: 11px 14px;
           border-radius: 12px;
-          border: none;
-          background: linear-gradient(135deg, #8b0000, #b71c1c);
+          border: 1.5px solid var(--ls-border);
+          background: var(--ls-grad-crimson);
           color: #fff;
           font-weight: 600;
-          font-size: 15px;
+          font-size: 14px;
           appearance: none;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+          transition: all 0.2s;
+          box-shadow: 0 4px 14px rgba(198,40,40,0.25);
         }
-        .blood-select:hover {
-          background: linear-gradient(135deg, #a30000, #d32f2f);
-          box-shadow: 0 12px 28px rgba(183,28,28,0.4);
+        .blood-select:hover { box-shadow: 0 8px 24px rgba(198,40,40,0.40); }
+        .blood-select option { background: #C62828; color: #fff; }
+        .donor-card {
+          background: var(--ls-surface);
+          backdrop-filter: blur(14px);
+          border: 1px solid var(--ls-border);
+          border-radius:16px;
+          padding:16px 20px;
+          margin-bottom:12px;
+          box-shadow: var(--ls-shadow-sm);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .blood-select:focus {
-          outline: none;
-          box-shadow: 0 12px 28px rgba(183,28,28,0.5);
+        .donor-card:hover { transform:translateY(-3px); box-shadow: var(--ls-shadow-md); }
+        .donor-name { font-weight:700; font-size: 16px; color: var(--ls-text); }
+        .donor-meta { font-size: 13px; color: var(--ls-text-muted); margin-top: 2px; }
+        .bloodTag {
+          display: inline-flex; align-items: center; justify-content: center;
+          padding: 6px 14px;
+          border-radius: 10px;
+          font-weight: 800; font-size: 14px; color: #fff;
+          background: var(--ls-grad-crimson);
+          box-shadow: 0 4px 14px rgba(198,40,40,0.30);
         }
-
-        .filters-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 24px;
+        .btn-outline-danger {
+          padding: 7px 16px; border-radius: 9px;
+          border: 1.5px solid var(--ls-crimson);
+          background: transparent;
+          color: var(--ls-crimson);
+          font-weight: 600; font-size: 13px;
+          text-decoration: none;
+          transition: all 0.2s;
+          display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-outline-danger:hover {
+          background: var(--ls-grad-crimson);
+          color: #fff;
+          border-color: transparent;
+          box-shadow: 0 6px 18px rgba(198,40,40,0.30);
         }
       `}</style>
 
       <div className="db-page">
         <div ref={mountRef} className="db-bg" />
+        <Navbar />
         <div className="content-wrap">
-          <h2>Donors</h2>
-          <p className="text-muted mb-3"><b>Find registered voluntary donors ready to help</b></p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+            <button onClick={() => navigate(-1)} style={{ background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ls-text)' }}>
+              ←
+            </button>
+            <div className="page-title" style={{ margin: 0 }}>👥 Donor Network</div>
+          </div>
+          <div className="page-sub">Find registered voluntary donors ready to help</div>
 
           {/* Filters */}
         <div className="filters-row">
@@ -281,18 +279,18 @@ export default function Donors() {
               <div key={d._id} className="donor-card">
                 <div className="row align-items-center">
                   <div className="col-md-7">
-                    <h5 style={{fontWeight:700}}>{d.name}</h5>
-                    <div className="text-muted">{d.age} yrs • {d.gender}</div>
-                    <div className="small text-muted">{d.city}, {d.state}</div>
-                    <div className="small">Last donated: {new Date(d.lastDonation).toLocaleDateString()}</div>
+                    <div className="donor-name">{d.name}</div>
+                    <div className="donor-meta">{d.age} yrs • {d.gender}</div>
+                    <div className="donor-meta">{d.city}, {d.state}</div>
+                    <div className="donor-meta">Last donated: {new Date(d.lastDonation).toLocaleDateString()}</div>
                   </div>
                   <div className="col-md-2 d-flex justify-content-center">
                     <div className="bloodTag">{d.bloodGroup}</div>
                   </div>
                   <div className="col-md-3 d-flex flex-column align-items-end">
-                    <div className="small text-muted">{dist ? `${dist} km away` : "Distance —"}</div>
-                    <Link to={`/donor/${d._id}`} className="btn btn-outline-danger btn-sm mt-2">
-                      View Profile
+                    <div style={{ fontSize: 12, color: 'var(--ls-text-muted)' }}>{dist ? `${dist} km away` : '—'}</div>
+                    <Link to={`/donor/${d._id}`} className="btn-outline-danger mt-2">
+                      View Profile →
                     </Link>
                   </div>
                 </div>

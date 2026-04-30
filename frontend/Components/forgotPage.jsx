@@ -105,59 +105,36 @@ export default function ForgotPage() {
   }, []);
 
   return (
-    <div style={{ position: "relative", height: "100vh", width: "100vw", backgroundColor: "#fff5e0" }}>
-      {/* Three.js Background */}
+    <div style={{ position: "relative", height: "100vh", width: "100vw", background: "var(--ls-bg)", overflow: 'hidden', display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div ref={mountRef} style={{ position: "absolute", top: 0, left: 0 }}></div>
+      
+      {/* Brand & Back Button */}
+      <div style={{ position: 'absolute', top: 20, left: 28, display: 'flex', alignItems: 'center', gap: 16, zIndex: 10 }}>
+        <button onClick={() => navigate(-1)} style={{ background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ls-text)' }}>
+          ←
+        </button>
+        <div style={{ fontFamily: "'Manrope',sans-serif", fontWeight: 800, fontSize: 22, background: 'var(--ls-grad-crimson)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>lifeStream 🩸</div>
+      </div>
 
-      {/* Forgot Password Form */}
-      <div
-        className="d-flex align-items-center justify-content-center vh-100"
-        style={{ position: "relative", zIndex: 1 }}
-      >
+      <div style={{ position: "relative", zIndex: 1 }}>
         <form
-          className="p-5 shadow rounded"
-          style={{
-            width: "420px",
-            background: "rgba(255, 240, 230, 0.95)",
-            borderRadius: "15px",
-            border: "1px solid rgba(255, 200, 180, 0.6)",
-            backdropFilter: "blur(10px)",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1.5rem",
-          }}
+          className="p-4"
+          style={{ width: "400px", background: "var(--ls-surface)", backdropFilter: "blur(20px) saturate(160%)", borderRadius: "20px", border: "1px solid var(--ls-border)", boxShadow: "var(--ls-shadow-lg)", display: "flex", flexDirection: "column", gap: "16px" }}
           onSubmit={handleSubmit}
         >
-          <h2 className="text-center text-danger mb-4">Forgot Password</h2>
-          <p className="text-center text-muted">
-            Enter your email address below and we'll send you instructions to reset your password.
-          </p>
-
-          <div className="d-flex flex-column">
-            <label htmlFor="email" className="form-label">Email address</label>
-            <input
-              type="email"
-              className="form-control"
-              id="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: "'Manrope',sans-serif", fontWeight: 800, fontSize: 22, color: 'var(--ls-text)' }}>Forgot Password?</div>
+            <p style={{ fontSize: 13, color: 'var(--ls-text-muted)', margin: '8px 0 0' }}>Enter your email and we'll send you a reset link.</p>
           </div>
-
-          <button
-            type="submit"
-            className="btn btn-danger w-100 mt-3"
-            style={{ fontWeight: "600" }}
-          >
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ls-text-sub)', display: 'block', marginBottom: 6 }}>Email address</label>
+            <input type="email" id="email" className="ls-input" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <button type="submit" style={{ padding: '13px', borderRadius: 12, border: 'none', background: 'var(--ls-grad-crimson)', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 10px 28px rgba(198,40,40,0.35)' }}>
             Send Reset Link
           </button>
-
-          <div className="text-center mt-2">
-            <Link to="/login" className="text-danger text-decoration-none">
-              Back to Login
-            </Link>
+          <div className="text-center" style={{ textAlign: 'center' }}>
+            <Link to="/login" style={{ color: 'var(--ls-crimson)', fontWeight: 600, fontSize: 14 }}>← Back to Login</Link>
           </div>
         </form>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import * as THREE from "three";
+import Navbar from "./Navbar.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -92,114 +93,77 @@ export default function DonorProfile() {
   return (
     <>
       <style>{`
-        html, body {
-          margin: 0;
-          padding: 0;
-          font-family: Inter, system-ui, Roboto;
-          background: linear-gradient(180deg, #ffe6e6 0%, #f7caca 45%, #f2b6b6 100%);
-          min-height: 100%;
-          overflow-x: hidden;
-        }
-        .three-bg {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 0;
-          pointer-events: none;
-        }
-        .db-page {
-          position: relative;
-          z-index: 1;
-          min-height: 100vh;
-          padding: 50px 15px;
-        }
+        html, body { margin:0; padding:0; background: var(--ls-bg); min-height:100%; overflow-x:hidden; }
+        .three-bg { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0; pointer-events:none; }
+        .db-page { position:relative; z-index:1; min-height:100vh; }
+        .profile-content { max-width: 900px; margin: 0 auto; padding: 28px 20px 60px; }
         .profile-card {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,220,220,0.55));
-          backdrop-filter: blur(14px);
-          border-radius: 24px;
-          padding: 30px 30px 40px;
-          box-shadow: 0 28px 90px rgba(0,0,0,0.25);
-          max-width: 900px;
-          margin: auto;
-          position: relative;
+          background: var(--ls-surface);
+          backdrop-filter: blur(16px) saturate(150%);
+          border: 1px solid var(--ls-border);
+          border-radius: 20px;
+          padding: 28px;
+          box-shadow: var(--ls-shadow-lg);
         }
-        .profile-card::before {
-          content: "";
-          position: absolute;
-          inset: -12px;
-          border-radius: 28px;
-          background: radial-gradient(circle at top, rgba(183,28,28,0.15), transparent 60%);
-          filter: blur(32px);
-          z-index: -1;
-        }
-        h2 { color: #b71c1c; font-weight: 800; margin-bottom: 10px; }
-        .text-muted { color: #555; }
+        h2 { font-family: 'Manrope',sans-serif; color: var(--ls-text); font-weight: 800; margin-bottom: 6px; }
+        .text-muted { color: var(--ls-text-muted) !important; }
+        strong { color: var(--ls-text); }
         .bloodTag {
-          padding: 8px 18px;
-          border-radius: 14px;
-          color: #fff;
-          font-weight: 700;
-          font-size: 16px;
-          background: #b71c1c;
-        }
-        .btn-custom {
-          border-radius: 14px;
-          font-weight: 600;
-          padding: 10px 18px;
-          width: 100%;
-          margin-bottom: 10px;
-          text-align: center;
+          padding: 8px 18px; border-radius: 12px; color: #fff;
+          font-weight: 800; font-size: 16px;
+          background: var(--ls-grad-crimson);
+          box-shadow: 0 6px 18px rgba(198,40,40,0.35);
           display: inline-block;
         }
         a.btn-custom-danger {
-          background: linear-gradient(135deg, #b71c1c, #ff6b6b);
-          color: white;
-          border: none;
+          display: block; border-radius: 12px; padding: 10px 18px; margin-bottom: 10px; text-align: center;
+          background: var(--ls-grad-crimson); color: white; text-decoration: none; font-weight: 700;
+          box-shadow: 0 8px 22px rgba(198,40,40,0.30); transition: transform 0.2s;
         }
+        a.btn-custom-danger:hover { transform: translateY(-2px); color: white; }
         a.btn-custom-outline {
-          border: 2px solid #b71c1c;
-          color: #b71c1c;
-          text-decoration: none;
+          display: block; border-radius: 12px; padding: 9px 18px; text-align: center;
+          border: 1.5px solid var(--ls-crimson); color: var(--ls-crimson); text-decoration: none; font-weight: 700;
+          transition: all 0.2s;
         }
-        @media (max-width: 767px) {
-          .d-flex { flex-direction: column !important; align-items: flex-start !important; }
-          .col-md-4 { width: 100% !important; margin-top: 20px; }
-        }
+        a.btn-custom-outline:hover { background: var(--ls-grad-crimson); color: #fff; border-color: transparent; }
+        .back-link { color: var(--ls-crimson); font-weight: 600; font-size: 14px; }
+        @media (max-width:767px) { .d-flex { flex-direction:column !important; align-items:flex-start !important; } .col-md-4 { width:100% !important; margin-top:20px; } }
       `}</style>
 
-      {/* Three.js background */}
       <div className="three-bg" ref={bgRef}></div>
 
       <div className="db-page">
-        <div className="profile-card">
-          <div className="row d-flex">
-            <div className="col-md-8">
-              <h2>{donor.name}</h2>
-              <div className="text-muted mb-2">{donor.age} yrs • {donor.gender}</div>
-              <div className="mb-2"><strong>Location:</strong> {donor.city}, {donor.state}</div>
-              <div className="mb-2"><strong>Phone:</strong> {donor.phone || "Not Provided"}</div>
-              <div className="mb-2"><strong>Email:</strong> {donor.email || "Not Provided"}</div>
-              <div className="mb-2"><strong>Last Donation:</strong> {new Date(donor.lastDonation).toLocaleDateString()}</div>
-              <div className="mb-2">
-                <strong>About Donor:</strong>
-                <p className="text-muted small mt-1">{donor.healthInfo || "No additional information provided."}</p>
+        <Navbar />
+        <div className="profile-content">
+          <div className="profile-card">
+            <div className="row d-flex">
+              <div className="col-md-8">
+                <h2>{donor.name}</h2>
+                <div className="text-muted mb-2">{donor.age} yrs • {donor.gender}</div>
+                <div className="mb-2" style={{ color: 'var(--ls-text-sub)' }}><strong>Location:</strong> {donor.city}, {donor.state}</div>
+                <div className="mb-2" style={{ color: 'var(--ls-text-sub)' }}><strong>Phone:</strong> {donor.phone || "Not Provided"}</div>
+                <div className="mb-2" style={{ color: 'var(--ls-text-sub)' }}><strong>Email:</strong> {donor.email || "Not Provided"}</div>
+                <div className="mb-2" style={{ color: 'var(--ls-text-sub)' }}><strong>Last Donation:</strong> {new Date(donor.lastDonation).toLocaleDateString()}</div>
+                <div className="mb-2">
+                  <strong>About Donor:</strong>
+                  <p className="text-muted small mt-1">{donor.healthInfo || "No additional information provided."}</p>
+                </div>
+              </div>
+              <div className="col-md-4 d-flex flex-column align-items-end justify-content-start">
+                <div className="bloodTag mb-3">{donor.bloodGroup}</div>
+                {donor.phone && (
+                  <a href={`tel:${donor.phone}`} className="btn-custom-danger mb-2">📞 Call Donor</a>
+                )}
+                {donor.email && (
+                  <a href={`mailto:${donor.email}`} className="btn-custom-outline">📧 Send Email</a>
+                )}
               </div>
             </div>
-            <div className="col-md-4 d-flex flex-column align-items-end justify-content-start">
-              <div className="bloodTag mb-3">{donor.bloodGroup}</div>
-              {donor.phone && (
-                <a href={`tel:${donor.phone}`} className="btn btn-custom btn-custom-danger mb-2">Call Donor</a>
-              )}
-              {donor.email && (
-                <a href={`mailto:${donor.email}`} className="btn btn-custom btn-custom-outline">Send Email</a>
-              )}
-            </div>
           </div>
-        </div>
-        <div className="text-center mt-3">
-          <Link to="/donors" className="btn btn-custom-outline">← Back to Donors List</Link>
+          <div className="text-center mt-3">
+            <Link to="/donors" className="back-link">← Back to Donors List</Link>
+          </div>
         </div>
       </div>
     </>
