@@ -414,6 +414,45 @@ app.post("/api/requests", async (req, res) => {
   try {
     const r = await Request.create(req.body);
     io.emit("requestCreated", r); // broadcast new request
+
+    // Send confirmation email if user is authenticated
+    try {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (token) {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await Signup.findById(decoded.id);
+        if (user && user.email) {
+          const bankName = req.body.selectedBank || 'nearest available bank';
+          await transporter.sendMail({
+            from: `"LifeStream 🩸" <${process.env.SMTP_EMAIL}>`,
+            to: user.email,
+            subject: `🩸 Blood Request Confirmed – ${req.body.bloodGroup} (${req.body.units} units)`,
+            html: `
+              <div style="font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;border:1px solid #eee;">
+                <h2 style="color:#b71c1c;margin-bottom:8px;">🩸 Blood Request Confirmed</h2>
+                <p style="color:#555;font-size:15px;">Hi <strong>${user.name || req.body.requesterName}</strong>,</p>
+                <p style="color:#555;font-size:15px;">Your blood request has been received and is being processed. Here are the details:</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                  <tr><td style="padding:8px;font-weight:600;color:#333;">Blood Group</td><td style="padding:8px;color:#b71c1c;font-weight:700;">${req.body.bloodGroup}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;color:#333;">Units</td><td style="padding:8px;">${req.body.units}</td></tr>
+                  <tr><td style="padding:8px;font-weight:600;color:#333;">Delivery Location</td><td style="padding:8px;">${req.body.hospital || 'Not specified'}</td></tr>
+                </table>
+                <div style="background:#fce4ec;padding:16px;border-radius:12px;margin:16px 0;">
+                  <p style="margin:0;color:#b71c1c;font-weight:700;">📦 Your blood is being prepared for shipment</p>
+                  <p style="margin:6px 0 0;color:#c62828;font-size:14px;">Estimated delivery: <strong>within 2–4 hours</strong></p>
+                </div>
+                <p style="color:#888;font-size:13px;">If you have any questions, reply to this email or call our helpline.</p>
+                <p style="color:#888;font-size:12px;margin-top:16px;">— LifeStream Blood Network</p>
+              </div>
+            `
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error('Blood request email error:', emailErr.message);
+    }
+
     res.json(r);
   } catch (err) {
     res.status(500).json({ message: "server error" });

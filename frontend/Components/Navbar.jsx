@@ -212,7 +212,7 @@ export default function Navbar() {
           transform: translateY(0); 
         }
         .ls-mobile-link {
-          padding: 12px 16px;
+          padding: 14px 16px;
           border-radius: 12px;
           font-weight: 600;
           font-size: 15.5px;
@@ -221,7 +221,7 @@ export default function Navbar() {
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 20px;
         }
         .ls-mobile-link:hover,
         .ls-mobile-link.active {

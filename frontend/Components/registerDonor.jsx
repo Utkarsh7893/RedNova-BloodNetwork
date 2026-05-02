@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import 'leaflet/dist/leaflet.css';
 import Navbar from "./Navbar.jsx";
+import { useTheme } from '../src/ThemeContext.jsx';
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
@@ -37,7 +38,8 @@ const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function DonorRegister() {
   const mountRef = useRef(null);
-  const messageRef = useRef(null); // Scroll ref
+  const messageRef = useRef(null);
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   // --------------------
@@ -153,7 +155,7 @@ export default function DonorRegister() {
 
       const data = await res.json();
       if (data.success) {
-        setSuccessMsg("Donor Registered Successfully!");
+        setSuccessMsg("🎉 Donor Registered Successfully! Your profile has been updated.");
         setForm({
           name: "",
           bloodGroup: "",
@@ -168,6 +170,24 @@ export default function DonorRegister() {
           lng: "",
           healthInfo: ""
         });
+
+        // Update user's isDonor flag in profile
+        const token = localStorage.getItem('ls_token');
+        if (token) {
+          try {
+            const profileRes = await fetch(`${API_BASE}/api/profile`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ isDonor: true })
+            });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              localStorage.setItem('ls_user', JSON.stringify(profileData.user));
+            }
+          } catch (profileErr) {
+            console.error('Failed to update isDonor in profile:', profileErr);
+          }
+        }
 
         // Scroll to top of the form/card
         if (messageRef.current) {
@@ -263,7 +283,12 @@ export default function DonorRegister() {
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(198,40,40,0.50); }
         .btn-main:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
         .bloodTag { padding: 10px 20px; border-radius: 12px; background: var(--ls-grad-crimson); color: white; font-weight: 800; font-size: 18px; }
-        .leaflet-container { border-radius: 14px; height: 320px; margin-top: 6px; }
+        .leaflet-container { border-radius: 14px; height: 320px; margin-top: 6px; z-index: 1; }
+        @media (max-width: 768px) {
+          .donor-card { padding: 20px 16px; }
+          .leaflet-container { height: 260px; }
+          .row.g-3 > [class*='col-'] { flex: 0 0 100%; max-width: 100%; }
+        }
         @keyframes ls-spin {
           to { transform: rotate(360deg); }
         }
@@ -279,6 +304,7 @@ export default function DonorRegister() {
       `}</style>
 
       <div className="donor-page">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6, mixBlendMode: 'luminosity', transition: 'all 1s' }} />
         <div ref={mountRef} className="donor-bg" />
         <Navbar />
 
@@ -330,23 +356,21 @@ export default function DonorRegister() {
 
           {/* Donor Preview */}
           {(form.name || form.city || form.bloodGroup) && (
-            <div className="donor-card">
-              <h4 style={{ color: "#b71c1c", fontWeight: 700 }}>Donor Preview</h4>
-              <p style={{ color: "#555" }}>This is how your profile will look.</p>
+              <div className="donor-card">
+              <h4 style={{ color: 'var(--ls-crimson)', fontWeight: 800 }}>👤 Donor Preview</h4>
+              <p style={{ color: 'var(--ls-text-sub)', fontSize: 14 }}>This is how your profile will look.</p>
 
-              <div className="row align-items-center">
-                <div className="col-md-8">
-                  <h5 style={{ fontWeight: 700 }}>{form.name || "Full Name"}</h5>
-                  <div style={{ color: "#555" }}>{form.age || "--"} yrs • {form.gender || "--"}</div>
-                  <div style={{ fontSize: "0.9rem", color: "#777" }}>{form.city || "--"}, {form.state || "--"}</div>
-                  <div style={{ fontSize: "0.9rem" }}>Last donated: {form.lastDonation ? new Date(form.lastDonation).toLocaleDateString() : "--"}</div>
-                  <div style={{ fontSize: "0.9rem", marginTop: 6, color: "#555" }}>Phone: {form.phone || "--"}</div>
-                  <div style={{ fontSize: "0.9rem", color: "#555" }}>Email: {form.email || "--"}</div>
-                  <div style={{ fontSize: "0.9rem", marginTop: 6 }}><strong>Health Info:</strong> {form.healthInfo || "--"}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <h5 style={{ fontWeight: 800, color: 'var(--ls-text)' }}>{form.name || 'Full Name'}</h5>
+                  <div style={{ color: 'var(--ls-text-sub)', fontSize: 14 }}>{form.age || '--'} yrs • {form.gender || '--'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-muted)' }}>{form.city || '--'}, {form.state || '--'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-muted)' }}>Last donated: {form.lastDonation ? new Date(form.lastDonation).toLocaleDateString() : '--'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginTop: 6 }}>📞 {form.phone || '--'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ls-text-sub)' }}>📧 {form.email || '--'}</div>
+                  {form.healthInfo && <div style={{ fontSize: 13, marginTop: 6 }}><strong>🏥 Health:</strong> {form.healthInfo}</div>}
                 </div>
-                <div className="col-md-4 d-flex justify-content-center align-items-center">
-                  <div className="bloodTag">{form.bloodGroup || "BG"}</div>
-                </div>
+                <div className="bloodTag">{form.bloodGroup || 'BG'}</div>
               </div>
             </div>
           )}

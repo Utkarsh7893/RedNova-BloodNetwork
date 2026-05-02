@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import Navbar from "./Navbar.jsx";
+import { useTheme } from '../src/ThemeContext.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function BloodBanks() {
   const mountRef = useRef(null);
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   const [banks, setBanks] = useState([]);
@@ -208,94 +210,48 @@ export default function BloodBanks() {
           box-shadow: 0 0 0 3px rgba(198,40,40,0.12);
         }
 
-        /* Search + select base */
+        /* Search + select — theme-aware */
         .bb-controls input,
         .bb-controls select {
           padding: 14px 18px;
           border-radius: 14px;
-          border: none;
+          border: 1.5px solid var(--ls-border);
           outline: none;
-
           font-size: 15px;
           font-weight: 600;
-
           min-height: 52px;
           min-width: 260px;
-
-          color: #7b1e1e;
-
-          background: linear-gradient(
-            135deg,
-            rgba(255,255,255,0.95),
-            rgba(255,225,225,0.95)
-          );
-
-          box-shadow:
-            inset 0 0 0 1px rgba(183, 28, 28, 0.35),
-            0 10px 26px rgba(183, 28, 28, 0.25);
-
+          color: var(--ls-text);
+          background: var(--ls-surface);
+          backdrop-filter: blur(12px);
+          box-shadow: var(--ls-shadow-sm);
           transition: all 0.25s ease;
         }
+        .bb-controls input::placeholder { color: var(--ls-text-muted); }
 
+        .bb-controls input { min-width: 300px; }
 
-        /* Search wider */
-        .bb-controls input {
-          min-width: 300px;
-        }
-
-        /* Hover */
         .bb-controls input:hover,
         .bb-controls select:hover {
-          box-shadow:
-            inset 0 0 0 1px rgba(183, 28, 28, 0.5),
-            0 12px 30px rgba(183, 28, 28, 0.35);
+          border-color: var(--ls-crimson);
+          box-shadow: 0 6px 20px rgba(198,40,40,0.15);
         }
 
-        /* Focus glow */
         .bb-controls input:focus,
         .bb-controls select:focus {
-          box-shadow:
-            inset 0 0 0 2px rgba(183, 28, 28, 0.75),
-            0 0 0 4px rgba(255, 120, 120, 0.35),
-            0 16px 40px rgba(183, 28, 28, 0.45);
+          border-color: var(--ls-crimson);
+          box-shadow: 0 0 0 3px rgba(198,40,40,0.15), 0 8px 24px rgba(198,40,40,0.12);
         }
 
-        /* Dropdown arrow color (modern browsers) */
         .bb-controls select {
           appearance: none;
           cursor: pointer;
-
-          background-image:
-            url("data:image/svg+xml;utf8,<svg fill='%23b71c1c' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>"),
-            linear-gradient(
-              135deg,
-              rgba(255,255,255,0.95),
-              rgba(255,225,225,0.95)
-            );
-
-          background-repeat: no-repeat, no-repeat;
-          background-position: right 16px center, center;
-          background-size: 18px, cover;
-
+          background-image: url("data:image/svg+xml;utf8,<svg fill='%23b71c1c' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+          background-repeat: no-repeat;
+          background-position: right 16px center;
+          background-size: 18px;
           padding-right: 48px;
         }
-
-        .bb-controls input:hover,
-        .bb-controls select:hover {
-          box-shadow:
-            inset 0 0 0 1px rgba(183, 28, 28, 0.55),
-            0 14px 34px rgba(183, 28, 28, 0.35);
-        }
-
-        .bb-controls input:focus,
-        .bb-controls select:focus {
-          box-shadow:
-            inset 0 0 0 2px rgba(183, 28, 28, 0.8),
-            0 0 0 4px rgba(255, 120, 120, 0.35),
-            0 18px 44px rgba(183, 28, 28, 0.45);
-        }
-
-
 
         /* Mobile */
         @media (max-width: 768px) {
@@ -351,6 +307,7 @@ export default function BloodBanks() {
       `}</style>
 
       <div className="bb-page">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6, mixBlendMode: 'luminosity', transition: 'all 1s' }} />
         <div ref={mountRef} className="bb-bg" />
         <Navbar />
 

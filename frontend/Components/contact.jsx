@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import Navbar from "./Navbar.jsx";
+import { useTheme } from '../src/ThemeContext.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -14,6 +15,7 @@ const IMAGES = [
 
 export default function Contact() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   /* ================= THREE.JS BACKGROUND ================= */
   const bgRef = useRef(null);
 
@@ -321,6 +323,7 @@ export default function Contact() {
       `}</style>
 
       <div className="contact-page">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6, mixBlendMode: 'luminosity', transition: 'all 1s' }} />
         <div ref={bgRef} className="contact-bg" />
         <Navbar />
 

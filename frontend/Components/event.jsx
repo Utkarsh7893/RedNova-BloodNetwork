@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar.jsx";
+import { useTheme } from '../src/ThemeContext.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -64,6 +65,7 @@ function daysUntil(dateStr) {
 
 export default function Events() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const bgRef = useRef(null);
@@ -100,6 +102,20 @@ export default function Events() {
       }
     }
     loadEvents();
+  }, []);
+
+  // Fetch user's registered events from DB
+  useEffect(() => {
+    const token = localStorage.getItem('ls_token');
+    if (!token) return;
+    fetch(`${API_BASE}/api/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.eventRegistrations) {
+          setRegisteredEvents(data.eventRegistrations.map(r => String(r.eventId)));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   /* ── Three.js background ── */
@@ -165,35 +181,42 @@ export default function Events() {
 
   async function handleRegister(e) {
     e.preventDefault();
-    if (!form.name || !form.email) {
-      showToast('Please fill name and email.', 'error');
-      return;
-    }
     setSubmitting(true);
     
-    // Simulate fetching available data and location
-    showToast('Fetching available data and location...', 'success');
-    
-    setTimeout(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/events/${selectedEvent._id}/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, eventId: selectedEvent._id }),
-        });
-        if (res.ok) {
-          showToast(`✅ You're registered for "${selectedEvent.title}"!`, 'success');
-        } else {
-          showToast(`✅ Registered for "${selectedEvent.title}"! See you there.`, 'success');
-        }
-      } catch {
-        showToast(`✅ Registered for "${selectedEvent.title}"! See you there.`, 'success');
-      } finally {
-        setRegisteredEvents(prev => [...prev, selectedEvent._id]);
+    try {
+      const token = localStorage.getItem('ls_token');
+      if (!token) {
+        showToast('Please login to register for events.', 'error');
         setSubmitting(false);
-        closeModal();
+        return;
       }
-    }, 1500); // Wait for simulation
+
+      const res = await fetch(`${API_BASE}/api/register-event`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          eventId: selectedEvent._id,
+          eventName: selectedEvent.title,
+          eventStart: new Date(selectedEvent.date).toLocaleString(),
+          eventEnd: ''
+        })
+      });
+
+      if (res.ok) {
+        showToast(`✅ Registered for "${selectedEvent.title}"! Credentials will be emailed.`, 'success');
+        setRegisteredEvents(prev => [...prev, String(selectedEvent._id)]);
+      } else {
+        showToast('Registration failed. Try again.', 'error');
+      }
+    } catch {
+      showToast('Network error. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+      closeModal();
+    }
   }
 
   function showToast(msg, type = 'success') {
@@ -278,11 +301,10 @@ export default function Events() {
           letter-spacing: -0.03em;
         }
 
-        /* Event card */
+        /* Event card — horizontal on desktop */
         .ev-card {
-          height: 100%;
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           border-radius: 18px;
           overflow: hidden;
           background: var(--ls-surface);
@@ -292,19 +314,22 @@ export default function Events() {
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
         .ev-card:hover {
-          transform: translateY(-6px);
+          transform: translateY(-4px);
           box-shadow: var(--ls-shadow-lg);
         }
         .ev-card-img {
-          width: 100%; height: 190px;
+          width: 280px;
+          min-height: 220px;
           object-fit: cover;
           display: block;
+          flex-shrink: 0;
         }
         .ev-card-body {
-          padding: 18px 18px 14px;
+          padding: 20px 24px;
           flex: 1;
           display: flex;
           flex-direction: column;
+          justify-content: center;
         }
         .ev-card-badge {
           display: inline-flex;
@@ -329,7 +354,7 @@ export default function Events() {
         }
         .ev-card-title {
           font-family: 'Manrope', sans-serif;
-          font-size: 17px;
+          font-size: 18px;
           font-weight: 800;
           color: var(--ls-text);
           margin-bottom: 6px;
@@ -345,7 +370,6 @@ export default function Events() {
           font-size: 13.5px;
           color: var(--ls-text-sub);
           line-height: 1.55;
-          flex: 1;
           margin-bottom: 14px;
         }
         .ev-register-btn {
@@ -357,13 +381,21 @@ export default function Events() {
           font-weight: 700;
           font-size: 14px;
           cursor: pointer;
-          width: 100%;
+          width: fit-content;
           transition: transform 0.2s, box-shadow 0.2s;
           box-shadow: 0 8px 24px rgba(198,40,40,0.30);
         }
         .ev-register-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 14px 36px rgba(198,40,40,0.50);
+        }
+
+        /* Mobile: stack vertically */
+        @media (max-width: 768px) {
+          .ev-card { flex-direction: column; }
+          .ev-card-img { width: 100%; min-height: 180px; height: 180px; }
+          .ev-card-body { padding: 16px; }
+          .ev-register-btn { width: 100%; }
         }
 
         /* Modal */
@@ -478,6 +510,7 @@ export default function Events() {
       `}</style>
 
       <div className="ev-page">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6, mixBlendMode: 'luminosity', transition: 'all 1s' }} />
         <div ref={bgRef} className="ev-bg" />
         <Navbar />
 
@@ -513,17 +546,17 @@ export default function Events() {
           </div>
 
           {loading ? (
-            <div className="row g-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {[1, 2, 3].map(i => (
-                <div key={i} className="col-md-4"><div className="ev-skeleton" /></div>
+                <div key={i} className="ev-skeleton" style={{ height: 200 }} />
               ))}
             </div>
           ) : (
-            <div className="row g-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {events
                 .filter(ev => {
-                  if (filter === 'registered') return registeredEvents.includes(ev._id);
-                  if (filter === 'unregistered') return !registeredEvents.includes(ev._id);
+                  if (filter === 'registered') return registeredEvents.includes(String(ev._id));
+                  if (filter === 'unregistered') return !registeredEvents.includes(String(ev._id));
                   return true;
                 })
                 .filter(ev => {
@@ -535,9 +568,9 @@ export default function Events() {
                 .map(ev => {
                 const days = daysUntil(ev.date);
                 const isSoon = days <= 7;
-                const isRegistered = registeredEvents.includes(ev._id);
+                const isRegistered = registeredEvents.includes(String(ev._id));
                 return (
-                  <div className="col-md-4 col-sm-6" key={ev._id}>
+                  <div key={ev._id}>
                     <div className="ev-card" style={isRegistered ? { boxShadow: '0 0 15px rgba(0, 137, 123, 0.6)', border: '2px solid var(--ls-teal)' } : {}}>
                       <img
                         src={ev.image}
@@ -574,58 +607,28 @@ export default function Events() {
         </div>
       </div>
 
-      {/* Registration Modal */}
+      {/* Registration Modal — Simplified (no form, just confirm) */}
       {modalOpen && selectedEvent && (
         <div className="ev-modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
           <div className="ev-modal">
-            <h3>🎟️ Event Registration</h3>
+            <h3>🎟️ Confirm Registration</h3>
             <div className="ev-modal-sub">
-              Registering for: <strong style={{ color: 'var(--ls-crimson)' }}>{selectedEvent.title}</strong>
+              You are registering for: <strong style={{ color: 'var(--ls-crimson)' }}>{selectedEvent.title}</strong>
             </div>
+            <div style={{ padding: '16px', borderRadius: 12, background: 'var(--ls-surface)', border: '1px solid var(--ls-border)', marginBottom: 16 }}>
+              <p style={{ margin: '4px 0', fontSize: 14, color: 'var(--ls-text-sub)' }}>📅 {new Date(selectedEvent.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              <p style={{ margin: '4px 0', fontSize: 14, color: 'var(--ls-text-sub)' }}>📍 {selectedEvent.location}</p>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ls-text-sub)', marginBottom: 16 }}>Your login email will be used for registration. Credentials will be sent within 5 minutes.</p>
 
-            <form onSubmit={handleRegister}>
-              <div style={{ marginBottom: 14 }}>
-                <label className="ev-modal-label">Full Name *</label>
-                <input
-                  className="ls-input"
-                  type="text"
-                  placeholder="Your full name"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <label className="ev-modal-label">Email Address *</label>
-                <input
-                  className="ls-input"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: 4 }}>
-                <label className="ev-modal-label">Phone Number</label>
-                <input
-                  className="ls-input"
-                  type="tel"
-                  placeholder="+91 XXXXX XXXXX"
-                  value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                />
-              </div>
-
-              <div className="ev-modal-actions">
-                <button type="button" className="ev-modal-cancel" onClick={closeModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="ev-modal-submit" disabled={submitting}>
-                  {submitting ? 'Registering…' : '✅ Confirm Registration'}
-                </button>
-              </div>
-            </form>
+            <div className="ev-modal-actions">
+              <button type="button" className="ev-modal-cancel" onClick={closeModal}>
+                Cancel
+              </button>
+              <button className="ev-modal-submit" disabled={submitting} onClick={handleRegister}>
+                {submitting ? 'Registering…' : '✅ Confirm Registration'}
+              </button>
+            </div>
           </div>
         </div>
       )}

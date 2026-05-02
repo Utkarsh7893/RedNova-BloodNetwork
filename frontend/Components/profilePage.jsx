@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { useTheme } from '../src/ThemeContext.jsx';
 import Navbar from './Navbar.jsx';
@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notification, setNotification] = useState('');
+  const navigate = useNavigate();
 
   const token = localStorage.getItem('ls_token');
 
@@ -231,12 +232,18 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between p-4 rounded-2xl border mb-6" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)' }}>
             <div>
               <span className="font-bold text-sm" style={{ color: 'var(--ls-text)' }}>💪 Register as Donor</span>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--ls-text-sub)' }}>Make yourself visible to those in need</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--ls-text-sub)' }}>
+                {profile?.isDonor ? 'You are a registered donor ✅' : 'Complete donor registration to activate'}
+              </p>
             </div>
             <button
-              onClick={() => handleChange('isDonor', !profile?.isDonor)}
+              onClick={() => {
+                if (!profile?.isDonor) {
+                  navigate('/registerdonor');
+                }
+              }}
               className="relative w-14 h-7 rounded-full transition-colors duration-300"
-              style={{ background: profile?.isDonor ? '#22c55e' : 'var(--ls-border)' }}
+              style={{ background: profile?.isDonor ? '#22c55e' : 'var(--ls-border)', cursor: profile?.isDonor ? 'default' : 'pointer' }}
             >
               <span className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300"
                 style={{ transform: profile?.isDonor ? 'translateX(28px)' : 'translateX(0)' }}

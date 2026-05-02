@@ -3,10 +3,12 @@ import { io } from "socket.io-client";
 import * as THREE from "three";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar.jsx";
+import { useTheme } from '../src/ThemeContext.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Donors() {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [donors, setDonors] = useState([]);
   const [filteredDonors, setFilteredDonors] = useState([]);
@@ -231,6 +233,7 @@ export default function Donors() {
       `}</style>
 
       <div className="db-page">
+        <div className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 opacity-60 mix-blend-luminosity" style={{ backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})` }} />
         <div ref={mountRef} className="db-bg" />
         <Navbar />
         <div className="content-wrap">
