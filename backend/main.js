@@ -267,7 +267,7 @@ app.post('/api/otp/verify', async (req, res) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/callback"
+    callbackURL: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/google/callback`
   },
   async function(accessToken, refreshToken, profile, cb) {
     try {
@@ -304,7 +304,7 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login?error=true' }),
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=true` }),
   function(req, res) {
     // Generate JWT
     const token = jwt.sign(
@@ -314,7 +314,7 @@ app.get('/auth/google/callback',
     );
     res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
     // Redirect to frontend dashboard or login page with success
-    res.redirect(`http://localhost:5173/login?google_token=${token}&status=success`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?google_token=${token}&status=success`);
   }
 );
 
