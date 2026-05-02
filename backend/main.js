@@ -631,6 +631,79 @@ io.on("connection", (socket) => {
   });
 });
 
+// ---------------------------
+// Subscription & Events
+// ---------------------------
+
+app.get('/api/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await Signup.findById(req.user.id).select('-password -otp');
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post('/api/subscribe', authenticateToken, async (req, res) => {
+  try {
+    const user = await Signup.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isSub = !user.isSubscribedToAlerts;
+    user.isSubscribedToAlerts = isSub;
+    await user.save();
+
+    if (isSub && process.env.SMTP_EMAIL) {
+      const mailOptions = {
+        from: process.env.SMTP_EMAIL,
+        to: user.email,
+        subject: 'Subscribed to LifeStream Alerts',
+        html: `<h2>Welcome to LifeStream Alerts!</h2><p>You will now receive urgent blood requirement notifications directly to your email.</p>`
+      };
+      transporter.sendMail(mailOptions, (error) => {
+        if (error) console.error("Error sending subscription email:", error);
+      });
+    }
+
+    res.json({ message: isSub ? "Subscribed" : "Unsubscribed", isSubscribedToAlerts: isSub });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post('/api/register-event', authenticateToken, async (req, res) => {
+  try {
+    const { eventId, eventName } = req.body;
+    const user = await Signup.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.registeredEvents) user.registeredEvents = [];
+    if (!user.registeredEvents.includes(String(eventId))) {
+      user.registeredEvents.push(String(eventId));
+      await user.save();
+      
+      // Schedule an email after 5 minutes (300,000 ms)
+      if (process.env.SMTP_EMAIL) {
+        setTimeout(() => {
+          const mailOptions = {
+            from: process.env.SMTP_EMAIL,
+            to: user.email,
+            subject: `Registration Confirmed: ${eventName}`,
+            html: `<h2>Event Registration Successful</h2><p>You have successfully registered for <b>${eventName}</b>.</p><p>Thank you for contributing to the community!</p>`
+          };
+          transporter.sendMail(mailOptions, (error) => {
+            if (error) console.error("Error sending event registration email:", error);
+          });
+        }, 5 * 60 * 1000); // 5 mins
+      }
+    }
+    
+    res.json({ message: "Registered successfully", registeredEvents: user.registeredEvents });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 server.listen(port, () => {
   const URL = `http://localhost:${port}/`;

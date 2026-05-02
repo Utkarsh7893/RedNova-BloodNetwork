@@ -3,12 +3,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../src/ThemeContext.jsx';
 
 const NAV_LINKS = [
-  { to: '/dashboard',    label: 'Dashboard' },
-  { to: '/donors',       label: 'Donors' },
-  { to: '/bloodbank',    label: 'Blood Banks' },
-  { to: '/events',       label: 'Events' },
-  { to: '/about',        label: 'About' },
-  { to: '/contact',      label: 'Contact' },
+  { to: '/dashboard',    icon: '🏠', label: 'Dashboard',         mobileLabel: 'Your Personal Hub' },
+  { to: '/donors',       icon: '🤝', label: 'Find Donors',       mobileLabel: 'Meet Local Donors' },
+  { to: '/bloodbank',    icon: '🏥', label: 'Check Blood Banks', mobileLabel: 'Explore Blood Banks' },
+  { to: '/events',       icon: '📅', label: 'Campaigns',         mobileLabel: 'Join Life-saving Camps' },
+  { to: '/about',        icon: 'ℹ️', label: 'About Us',          mobileLabel: 'Discover Our Mission' },
+  { to: '/contact',      icon: '✉️', label: 'Contact',           mobileLabel: 'Get Urgent Support' },
 ];
 
 export default function Navbar() {
@@ -156,37 +156,53 @@ export default function Navbar() {
 
         /* Mobile menu */
         .ls-mobile-menu {
-          display: none;
           position: absolute;
           top: 64px;
           left: 0;
           right: 0;
           background: var(--ls-surface);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
           border-bottom: 1px solid var(--ls-border);
-          padding: 12px 20px 16px;
+          border-bottom-left-radius: 24px;
+          border-bottom-right-radius: 24px;
+          padding: 16px 20px 24px;
+          display: flex;
           flex-direction: column;
-          gap: 4px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+          gap: 6px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
           z-index: 999;
+          
+          /* Smooth Animation */
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(-10px);
+          transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
         }
-        .ls-mobile-menu.open { display: flex; }
+        .ls-mobile-menu.open { 
+          opacity: 1; 
+          visibility: visible;
+          transform: translateY(0); 
+        }
         .ls-mobile-link {
-          padding: 10px 14px;
-          border-radius: 10px;
-          font-weight: 500;
-          font-size: 15px;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 15.5px;
           color: var(--ls-text-sub);
           text-decoration: none;
-          transition: background 0.2s, color 0.2s;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          gap: 14px;
         }
         .ls-mobile-link:hover,
         .ls-mobile-link.active {
-          background: rgba(198,40,40,0.10);
+          background: rgba(198,40,40,0.08);
           color: var(--ls-crimson);
+          transform: translateX(4px);
         }
-        .ls-mobile-link.active { font-weight: 600; }
+        .ls-mobile-link.active { font-weight: 700; }
 
         @media (max-width: 900px) {
           .ls-nav-links { display: none; }
@@ -204,13 +220,15 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <ul className="ls-nav-links">
-            {NAV_LINKS.map(({ to, label }) => (
+            {NAV_LINKS.map(({ to, icon, label }) => (
               <li key={to}>
                 <Link
                   to={to}
                   className={`ls-nav-link${location.pathname === to ? ' active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {label}
+                  <span>{icon}</span>
+                  <span>{label}</span>
                 </Link>
               </li>
             ))}
@@ -223,7 +241,15 @@ export default function Navbar() {
               onClick={toggleTheme}
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {isDark ? '☀️' : '🌙'}
+              {isDark ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#4DB6AC' }}>
+                  <path d="M19 10h-5V5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5H5a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h5v5a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-5h5a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1z"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#C62828' }}>
+                  <path d="M12 21a7 7 0 0 0 7-7c0-4-7-11-7-11S5 10 5 14a7 7 0 0 0 7 7z"/>
+                </svg>
+              )}
             </button>
             <Link to="/requestblood" className="ls-cta-btn">🩸 Request Blood</Link>
 
@@ -242,14 +268,15 @@ export default function Navbar() {
 
         {/* Mobile dropdown */}
         <div className={`ls-mobile-menu${menuOpen ? ' open' : ''}`}>
-          {NAV_LINKS.map(({ to, label }) => (
+          {NAV_LINKS.map(({ to, icon, mobileLabel }) => (
             <Link
               key={to}
               to={to}
               className={`ls-mobile-link${location.pathname === to ? ' active' : ''}`}
               onClick={() => setMenuOpen(false)}
             >
-              {label}
+              <span style={{ display: 'inline-block', width: '24px', textAlign: 'center', fontSize: '18px', flexShrink: 0 }}>{icon}</span>
+              <span style={{ lineHeight: '1.3' }}>{mobileLabel}</span>
             </Link>
           ))}
           <Link

@@ -1,14 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import * as THREE from "three";
-import { Link } from "react-router-dom";
+import { useTheme } from '../src/ThemeContext.jsx';
+import Navbar from './Navbar.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function BloodBankDetails() {
   const { id } = useParams();
   const [bank, setBank] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const mountRef = useRef(null);
+  const { isDark } = useTheme();
+
+  // fetch user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.warn('Geolocation err:', err)
+      );
+    }
+  }, []);
 
   // fetch bank data
   useEffect(() => {
@@ -18,195 +31,197 @@ export default function BloodBankDetails() {
       .catch(console.error);
   }, [id]);
 
-  // three.js background
+  // three.js background (Same as dashboard)
   useEffect(() => {
+    const el = mountRef.current;
+    if (!el) return;
     const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = 7;
-
+    const camera = new THREE.PerspectiveCamera(60, el.clientWidth / el.clientHeight, 0.1, 1000);
+    camera.position.z = 6;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(el.clientWidth, el.clientHeight);
+    renderer.setClearColor(0x000000, 0); // transparent
+    el.appendChild(renderer.domElement);
 
-    renderer.domElement.style.position = "fixed";
-    renderer.domElement.style.top = "0";
-    renderer.domElement.style.left = "0";
-    renderer.domElement.style.zIndex = "0"; // behind content
-    renderer.domElement.style.pointerEvents = "none";
-
-    document.body.appendChild(renderer.domElement);
-
-    // particles
-    const count = 240;
+    const count = 160;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 18;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 12;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 12;
+      positions[i * 3] = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
     }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({ color: 0xb71c1c, size: 0.08, opacity: 0.6, transparent: true });
+    const pts = new THREE.Points(geo, mat);
+    scene.add(pts);
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    const material = new THREE.PointsMaterial({
-      color: 0xb71c1c,
-      size: 0.18,
-      opacity: 0.9,
-      transparent: true,
-      depthWrite: false
-    });
-
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
-
-    let rafId;
+    let raf;
     const animate = () => {
-      points.rotation.y += 0.0006;
-      points.rotation.x += 0.0004;
+      pts.rotation.y += 0.0006;
+      pts.rotation.x += 0.0003;
       renderer.render(scene, camera);
-      rafId = requestAnimationFrame(animate);
+      raf = requestAnimationFrame(animate);
     };
     animate();
 
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    const resize = () => {
+      renderer.setSize(el.clientWidth, el.clientHeight);
+      camera.aspect = el.clientWidth / el.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
     };
-
-    window.addEventListener("resize", onResize);
-
+    window.addEventListener("resize", resize);
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      geo.dispose();
+      mat.dispose();
       renderer.dispose();
-      document.body.removeChild(renderer.domElement);
+      if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement);
     };
   }, []);
 
-  if (!bank)
-    return <div className="container mt-5">Loading blood bank details...</div>;
 
-  const totalUnits = Object.values(bank.stock || {}).reduce((a, b) => a + b, 0);
+
+  const totalUnits = bank ? Object.values(bank.stock || {}).reduce((a, b) => a + (b || 0), 0) : 0;
+  const lastUpdated = bank ? new Date(bank.updatedAt).toLocaleString() : '';
+
+  function calcDistanceKm(userLat, userLng, bankCoords) {
+    if (!bankCoords || bankCoords.length < 2) return null;
+    const toRad = d => (d * Math.PI) / 180;
+    const [lng, lat] = bankCoords;
+    const R = 6371;
+    const a = Math.sin(toRad(lat - userLat) / 2) ** 2
+      + Math.cos(toRad(userLat)) * Math.cos(toRad(lat)) * Math.sin(toRad(lng - userLng) / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  const distanceText = userLocation && bank?.location?.coordinates
+    ? calcDistanceKm(userLocation.lat, userLocation.lng, bank.location.coordinates).toFixed(1) + ' km away'
+    : 'Calculating distance...';
+
+  const getStockStatus = (units) => {
+    if (units < 5) return { color: '#ef4444', shadow: 'rgba(239, 68, 68, 0.4)', text: 'Critical' }; // Red
+    if (units <= 15) return { color: '#eab308', shadow: 'rgba(234, 179, 8, 0.4)', text: 'Moderate' }; // Yellow
+    return { color: '#22c55e', shadow: 'rgba(34, 197, 94, 0.4)', text: 'Sufficient' }; // Green
+  };
 
   return (
-    <>
-      <style>{`
-        html, body {
-          margin: 0;
-          padding: 0;
-          font-family: Inter, system-ui, Roboto;
-          height: 100%;
-          background: linear-gradient(180deg,#ffe6e6,#f7caca,#f2b6b6);
-        }
-        .bb-page {
-          position: relative;
-          min-height: 100vh;
-        }
-        .bb-bg {
-          position: fixed;
-          inset: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 0; /* behind content */
-          pointer-events: none;
-        }
-        .bb-content {
-          position: relative;
-          z-index: 1;
-        }
-        .card-wrapper {
-          background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,220,220,0.55));
-          backdrop-filter: blur(14px);
-          border-radius: 20px;
-          padding: 30px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-          max-width: 900px;
-          margin: 50px auto;
-        }
-        .blood-box {
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-        .blood-box:hover {
-          transform: scale(1.05);
-          box-shadow: 0 0 20px 3px;
-        }
-      `}</style>
+    <div className="min-h-screen font-sans relative overflow-x-hidden transition-colors duration-300" style={{ background: 'var(--ls-bg)', color: 'var(--ls-text)' }}>
+      {/* Background Image & Three.js */}
+      <div 
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 opacity-60 mix-blend-luminosity"
+        style={{ backgroundImage: `url(${isDark ? '/img/dash_bg_dark.png' : '/img/dash_bg_light.png'})` }}
+      />
+      <div ref={mountRef} className="fixed inset-0 z-0 pointer-events-none" />
 
-      <div className="bb-page">
-        {/* Three.js background */}
-        <div ref={mountRef} className="bb-bg" />
+      {/* Navbar */}
+      <div className="relative z-50">
+        <Navbar />
+      </div>
 
-        <div className="container bb-content">
-          <div className="card-wrapper">
-            <h3 style={{ color: "#b71c1c", fontWeight: 700 }}>{bank.name}</h3>
-            <p className="text-muted">{bank.address}</p>
-
-            <hr />
-
-            <div className="row mb-3">
-              <div className="col-md-4">
-                <strong>📞 Contact</strong>
-                <div>{bank.contact || "Not available"}</div>
+      <div className="relative z-10 container mx-auto px-4 py-6 md:py-8 flex justify-center min-h-[60vh] items-center md:items-start">
+        {!bank ? (
+          <div className="flex flex-col items-center justify-center gap-4 animate-pulse">
+            <span className="text-6xl animate-bounce">🩸</span>
+            <span className="font-black tracking-[0.2em] text-sm text-red-500 uppercase">Loading Data...</span>
+          </div>
+        ) : (
+          <div className="w-full max-w-4xl backdrop-blur-2xl border rounded-[28px] md:rounded-[32px] p-5 md:p-8 shadow-2xl transition-all" style={{ background: 'var(--ls-surface)', borderColor: 'var(--ls-border)' }}>
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black mb-2" style={{ color: 'var(--ls-text)' }}>{bank.name}</h1>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm md:text-base flex items-center gap-2 font-medium" style={{ color: 'var(--ls-text-sub)' }}>
+                    <span>📍</span> {bank.address}
+                  </p>
+                  <p className="text-xs md:text-sm flex items-center gap-2 font-bold text-red-500">
+                    <span>🛣️</span> {distanceText}
+                  </p>
+                </div>
               </div>
-              <div className="col-md-4">
-                <strong>🩸 Total Units</strong>
-                <div>{totalUnits}</div>
-              </div>
-              <div className="col-md-4">
-                <strong>⏱ Last Updated</strong>
-                <div>{new Date(bank.updatedAt).toLocaleString()}</div>
-              </div>
-            </div>
-
-            <h5 className="mt-4">Blood Stock Availability</h5>
-            <div className="row g-3 mt-2">
-              {Object.entries(bank.stock).map(([group, units]) => {
-                const glowColor = units > 0 ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.7)";
-                return (
-                  <div key={group} className="col-6 col-md-3">
-                    <div
-                      className="p-3 rounded-3 text-center blood-box"
-                      style={{
-                        background: units > 0 ? "#fff5f5" : "#f2f2f2",
-                        border: "1px solid #f0caca",
-                        boxShadow: "0 4px 14px rgba(0,0,0,0.05)",
-                        // dynamic glow on hover
-                        "--glow-color": glowColor
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.boxShadow = `0 0 20px 3px var(--glow-color)`;
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,0,0,0.05)";
-                      }}
-                    >
-                      <div style={{ fontWeight: 700 }}>{group}</div>
-                      <div style={{ color: units > 0 ? "#b71c1c" : "#777" }}>
-                        {units} units
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4">
-              <Link to="/dashboard" className="btn btn-outline-danger">
+              <Link to="/dashboard" className="px-5 py-2.5 rounded-xl text-sm font-bold border transition-colors hover:-translate-y-0.5 shadow-sm" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)', color: 'var(--ls-text)' }}>
                 ← Back to Dashboard
               </Link>
             </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+              <div className="p-4 rounded-2xl border flex flex-col justify-center shadow-inner col-span-2 md:col-span-1" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)' }}>
+                <span className="text-[10px] sm:text-xs uppercase tracking-wider font-bold mb-1" style={{ color: 'var(--ls-text-sub)' }}>Contact Info</span>
+                <span className="font-semibold text-base sm:text-lg">{bank.contact || "N/A"}</span>
+              </div>
+              <div className="p-4 rounded-2xl border flex flex-col justify-center shadow-inner" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)' }}>
+                <span className="text-[10px] sm:text-xs uppercase tracking-wider font-bold mb-1" style={{ color: 'var(--ls-text-sub)' }}>Total Units</span>
+                <span className="font-black text-xl sm:text-2xl text-red-500">{totalUnits}</span>
+              </div>
+              <div className="p-4 rounded-2xl border flex flex-col justify-center shadow-inner relative overflow-hidden" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)' }}>
+                <span className="text-[10px] sm:text-xs uppercase tracking-wider font-bold mb-1 flex items-center gap-1" style={{ color: 'var(--ls-text-sub)' }}>
+                  ⏱ Last Updated
+                </span>
+                <span className="font-semibold text-sm">{lastUpdated}</span>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-transparent"></div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--ls-text)' }}>
+                🩸 Live Blood Stock
+              </h2>
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                {Object.entries(bank.stock || {}).map(([group, units]) => {
+                  const status = getStockStatus(units);
+                  return (
+                    <div 
+                      key={group}
+                      className="relative group p-2 sm:p-3 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center cursor-default"
+                      style={{ background: 'var(--ls-surface)', borderColor: 'var(--ls-border)' }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.boxShadow = `0 0 15px 2px ${status.shadow}`;
+                        e.currentTarget.style.borderColor = status.color;
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = 'var(--ls-border)';
+                      }}
+                    >
+                      <span className="text-xl sm:text-2xl font-black mb-0.5" style={{ color: 'var(--ls-text)' }}>{group}</span>
+                      <span className="text-xs sm:text-base font-bold" style={{ color: status.color }}>{units} Units</span>
+                      <span className="text-[9px] sm:text-[10px] uppercase tracking-widest font-bold mt-1 px-2 py-0.5 rounded-full text-center leading-tight" style={{ background: status.shadow, color: status.color }}>{status.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 border-t pt-6" style={{ borderColor: 'var(--ls-border)' }}>
+              <a 
+                href={`mailto:${bank.email || 'contact@lifestream.com'}?subject=Urgent Blood Request via LifeStream`} 
+                className="flex-1 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 font-bold py-3.5 rounded-xl text-sm sm:text-base text-center transition-all shadow-md flex justify-center items-center gap-5 md:gap-2"
+                style={{ color: '#ffffff', textDecoration: 'none' }}
+              >
+                ✉️ Send Mail
+              </a>
+              <a 
+                href={`tel:${bank.contact}`} 
+                className="flex-1 font-bold py-3.5 rounded-xl text-sm sm:text-base text-center transition-all border flex justify-center items-center gap-5 md:gap-2 hover:-translate-y-0.5 shadow-sm"
+                style={{ background: 'var(--ls-surface)', borderColor: 'var(--ls-border)', color: 'var(--ls-text)' }}
+              >
+                📞 Call Directly
+              </a>
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${bank.location?.coordinates[1] || 0},${bank.location?.coordinates[0] || 0}`} 
+                target="_blank" rel="noopener noreferrer"
+                className="flex-1 font-bold py-3.5 rounded-xl text-sm sm:text-base text-center transition-all border flex justify-center items-center gap-5 md:gap-2 hover:-translate-y-0.5 shadow-sm hover:opacity-90"
+                style={{ background: '#E3F2FD', borderColor: '#90CAF9', color: '#0D47A1' }}
+              >
+                🗺️ Locate on Maps
+              </a>
+            </div>
+
           </div>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }

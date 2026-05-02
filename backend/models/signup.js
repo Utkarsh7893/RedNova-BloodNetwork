@@ -14,6 +14,8 @@ const itemSchema=new mongoose.Schema({
     emailVerified: { type: Boolean, default: false },
     otp: String,
     otpExpiry: Date,
+    isSubscribedToAlerts: { type: Boolean, default: false },
+    registeredEvents: { type: [String], default: [] }
 });
 
 module.exports=mongoose.model("signUpUser",itemSchema);

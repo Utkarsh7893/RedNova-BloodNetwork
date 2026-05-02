@@ -8,6 +8,7 @@ const BloodBankSchema = new mongoose.Schema({
     coordinates: { type: [Number], default: [0,0] } // [lng, lat]
   },
   contact: String,
+  email: String,
   // units stored per bloodgroup
   stock: {
     "A+": { type: Number, default: 0 },
@@ -18,9 +19,8 @@ const BloodBankSchema = new mongoose.Schema({
     "AB-": { type: Number, default: 0 },
     "O+": { type: Number, default: 0 },
     "O-": { type: Number, default: 0 }
-  },
-  updatedAt: { type: Date, default: Date.now }
-});
+  }
+}, { timestamps: true });
 
 BloodBankSchema.index({ location: "2dsphere" });
 
