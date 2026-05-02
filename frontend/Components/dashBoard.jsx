@@ -91,7 +91,7 @@ export default function DashBoard() {
   const handleSubscribe = async () => {
     setIsSubscribing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('ls_token');
       if (!token) {
         showNotification("Please login to subscribe");
         setIsSubscribing(false);
@@ -117,17 +117,17 @@ export default function DashBoard() {
   };
 
   const handleRegisterEvent = async (event) => {
-    if (registeredEvents.includes(event.id)) return;
+    if (registeredEvents.includes(String(event.id))) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('ls_token');
       if (!token) {
         showNotification("Please login to register");
         return;
       }
 
-      setRegisteredEvents(prev => [...prev, event.id]); // Optimistic UI update
-      showNotification(`Registered! You will receive credentials for ${event.name} via email.`);
+      setRegisteredEvents(prev => [...prev, String(event.id)]); // Optimistic UI
+      showNotification(`Registered for "${event.name}"! Event on ${event.start}. Credentials will be emailed shortly.`);
 
       await fetch(`${API_BASE}/api/register-event`, {
         method: 'POST',
@@ -135,7 +135,7 @@ export default function DashBoard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ eventId: event.id, eventName: event.name })
+        body: JSON.stringify({ eventId: event.id, eventName: event.name, eventStart: event.start, eventEnd: event.end })
       });
     } catch (err) {
       console.error(err);
@@ -146,7 +146,7 @@ export default function DashBoard() {
   useEffect(() => {
     async function load() {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('ls_token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         const [banksRes, statsRes, meRes] = await Promise.all([
@@ -160,7 +160,22 @@ export default function DashBoard() {
         
         if (meRes) {
           setIsSubscribed(meRes.isSubscribedToAlerts || false);
-          setRegisteredEvents(meRes.registeredEvents || []);
+          // Extract event IDs from the dedicated EventRegistration collection
+          const regEventIds = (meRes.eventRegistrations || []).map(r => String(r.eventId));
+          setRegisteredEvents(regEventIds);
+
+          // Profile completion check (one-time notification)
+          const profileKeys = ['name', 'email', 'bloodgroup', 'gender', 'dob', 'contact', 'address', 'city', 'state', 'pincode', 'emergencyContact', 'bio', 'profilePhoto'];
+          let filled = 0;
+          for (const k of profileKeys) {
+            if (meRes[k] && String(meRes[k]).trim()) filled++;
+          }
+          const pct = Math.round((filled / profileKeys.length) * 100);
+          const alreadyNotified = sessionStorage.getItem('ls_profile_notified');
+          if (pct < 100 && !alreadyNotified) {
+            sessionStorage.setItem('ls_profile_notified', 'true');
+            setTimeout(() => showNotification(`Your profile is ${pct}% complete. Complete it to help blood banks reach you faster!`), 2000);
+          }
         }
       } catch (err) {
         console.error("Fetch failed:", err);
@@ -390,7 +405,7 @@ export default function DashBoard() {
             
             <div className="flex flex-col gap-4">
               {campaigns.map(c => {
-                const isReg = registeredEvents.includes(c.id);
+                const isReg = registeredEvents.includes(String(c.id));
                 return (
                 <div key={c.id} className="backdrop-blur-md border rounded-2xl p-5 shadow-lg" style={{ background: 'var(--ls-surface)', borderColor: 'var(--ls-border)' }}>
                   <div className="flex justify-between items-start mb-3">
@@ -484,7 +499,7 @@ export default function DashBoard() {
             <div className="backdrop-blur-xl border rounded-3xl p-6 shadow-xl" style={{ background: 'var(--ls-surface)', borderColor: 'var(--ls-border)' }}>
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--ls-text)' }}>⚡ Quick Actions</h3>
               <div className="flex flex-col gap-3">
-                <Link to="/requestblood" className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold py-3.5 px-6 rounded-xl text-center transition-all shadow-[0_8px_20px_rgba(220,38,38,0.3)] hover:shadow-[0_12px_25px_rgba(220,38,38,0.4)] hover:-translate-y-0.5 flex justify-center items-center gap-2">
+                <Link to="/requestblood" className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 font-bold py-3.5 px-6 rounded-xl text-center transition-all shadow-[0_8px_20px_rgba(220,38,38,0.3)] hover:shadow-[0_12px_25px_rgba(220,38,38,0.4)] hover:-translate-y-0.5 flex justify-center items-center gap-2" style={{ color: '#ffffff', textDecoration: 'none' }}>
                   🩸 Request Blood
                 </Link>
                 <Link to="/registerdonor" className="font-bold py-3.5 px-6 rounded-xl text-center transition-all hover:-translate-y-0.5 flex justify-center items-center gap-2 border hover:shadow-md" style={{ background: 'var(--ls-bg-alt)', borderColor: 'var(--ls-border)', color: 'var(--ls-text)' }}>

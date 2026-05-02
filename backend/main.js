@@ -12,6 +12,9 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'lifestream_super_secret_key_123';
 
@@ -24,6 +27,7 @@ const Donor = require("./models/Donors");
 const Event = require("./models/Event");
 const Contact = require("./models/ContactMsg");
 const CompletedRequest = require("./models/CompletedRequest");
+const EventRegistration = require("./models/EventRegistration");
 
 
 // Support multiple allowed origins: local dev + hosted production
@@ -49,9 +53,21 @@ app.use((req, res, next) => {
   console.log(req.method, req.url);
   next();
 });
-app.use(express.json());          // <-- parse JSON
-app.use(express.urlencoded({ extended: true })); // optional, for form data
+app.use(express.json({ limit: '10mb' }));          // increased for base64 photos
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+// Serve uploaded files statically
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir));
+
+// Multer config for profile photo
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => cb(null, `profile_${req.user.id}_${Date.now()}${path.extname(file.originalname)}`)
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Session & Passport for Google OAuth
 app.use(session({
@@ -635,16 +651,26 @@ io.on("connection", (socket) => {
 // Subscription & Events
 // ---------------------------
 
+// Get current user profile + registrations
 app.get('/api/me', authenticateToken, async (req, res) => {
   try {
-    const user = await Signup.findById(req.user.id).select('-password -otp');
+    const user = await Signup.findById(req.user.id).select('-password -otp -otpExpiry');
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+
+    // Also fetch their event registrations from the separate collection
+    const registrations = await EventRegistration.find({ userId: req.user.id });
+
+    res.json({
+      ...user.toObject(),
+      eventRegistrations: registrations
+    });
   } catch (err) {
+    console.error('GET /api/me error:', err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// Toggle campaign alert subscription
 app.post('/api/subscribe', authenticateToken, async (req, res) => {
   try {
     const user = await Signup.findById(req.user.id);
@@ -654,54 +680,119 @@ app.post('/api/subscribe', authenticateToken, async (req, res) => {
     user.isSubscribedToAlerts = isSub;
     await user.save();
 
+    // Send welcome email on subscribe
     if (isSub && process.env.SMTP_EMAIL) {
       const mailOptions = {
         from: process.env.SMTP_EMAIL,
         to: user.email,
-        subject: 'Subscribed to LifeStream Alerts',
-        html: `<h2>Welcome to LifeStream Alerts!</h2><p>You will now receive urgent blood requirement notifications directly to your email.</p>`
+        subject: '🩸 Subscribed to LifeStream Alerts',
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#fff5f5;border-radius:16px">
+          <h2 style="color:#b71c1c">Welcome to LifeStream Alerts!</h2>
+          <p>Hi <b>${user.name}</b>,</p>
+          <p>You will now receive urgent blood requirement notifications directly to your email.</p>
+          <p style="color:#888;font-size:12px">— Team LifeStream</p>
+        </div>`
       };
-      transporter.sendMail(mailOptions, (error) => {
-        if (error) console.error("Error sending subscription email:", error);
-      });
+      transporter.sendMail(mailOptions).catch(e => console.error('Subscribe email error:', e));
     }
 
-    res.json({ message: isSub ? "Subscribed" : "Unsubscribed", isSubscribedToAlerts: isSub });
+    res.json({ message: isSub ? 'Subscribed' : 'Unsubscribed', isSubscribedToAlerts: isSub });
   } catch (err) {
+    console.error('POST /api/subscribe error:', err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// Register for an event — saved in separate EventRegistration collection
 app.post('/api/register-event', authenticateToken, async (req, res) => {
   try {
-    const { eventId, eventName } = req.body;
+    const { eventId, eventName, eventStart, eventEnd } = req.body;
     const user = await Signup.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user.registeredEvents) user.registeredEvents = [];
-    if (!user.registeredEvents.includes(String(eventId))) {
-      user.registeredEvents.push(String(eventId));
-      await user.save();
-      
-      // Schedule an email after 5 minutes (300,000 ms)
-      if (process.env.SMTP_EMAIL) {
-        setTimeout(() => {
+    // Check if already registered
+    const existing = await EventRegistration.findOne({ userId: req.user.id, eventId: String(eventId) });
+    if (existing) {
+      return res.json({ message: "Already registered", registration: existing });
+    }
+
+    // Create new registration in the dedicated collection
+    const registration = await EventRegistration.create({
+      userId: req.user.id,
+      eventId: String(eventId),
+      eventName,
+      eventStart: eventStart || '',
+      eventEnd: eventEnd || ''
+    });
+
+    // Schedule a confirmation email after 5 minutes
+    if (process.env.SMTP_EMAIL) {
+      setTimeout(async () => {
+        try {
           const mailOptions = {
             from: process.env.SMTP_EMAIL,
             to: user.email,
-            subject: `Registration Confirmed: ${eventName}`,
-            html: `<h2>Event Registration Successful</h2><p>You have successfully registered for <b>${eventName}</b>.</p><p>Thank you for contributing to the community!</p>`
+            subject: `✅ Registration Confirmed: ${eventName}`,
+            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#fff5f5;border-radius:16px">
+              <h2 style="color:#b71c1c">Event Registration Confirmed</h2>
+              <p>Hi <b>${user.name}</b>,</p>
+              <p>You have been successfully registered for:</p>
+              <div style="background:#fff;border:1px solid #f0caca;border-radius:12px;padding:20px;margin:16px 0">
+                <h3 style="margin:0 0 8px;color:#b71c1c">${eventName}</h3>
+                <p style="margin:4px 0;color:#555">📅 <b>Starts:</b> ${eventStart || 'TBA'}</p>
+                <p style="margin:4px 0;color:#555">⏳ <b>Ends:</b> ${eventEnd || 'TBA'}</p>
+              </div>
+              <p>Please arrive on time. Thank you for contributing to the community!</p>
+              <p style="color:#888;font-size:12px">— Team LifeStream</p>
+            </div>`
           };
-          transporter.sendMail(mailOptions, (error) => {
-            if (error) console.error("Error sending event registration email:", error);
-          });
-        }, 5 * 60 * 1000); // 5 mins
-      }
+          await transporter.sendMail(mailOptions);
+          // Mark email as sent
+          await EventRegistration.findByIdAndUpdate(registration._id, { emailSent: true });
+        } catch (emailErr) {
+          console.error('Event registration email error:', emailErr);
+        }
+      }, 5 * 60 * 1000); // 5 minutes
     }
-    
-    res.json({ message: "Registered successfully", registeredEvents: user.registeredEvents });
+
+    res.json({ message: "Registered successfully", registration });
   } catch (err) {
+    console.error('POST /api/register-event error:', err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ---------------------------
+// Profile Management
+// ---------------------------
+
+// Upload profile photo
+app.post('/api/profile/photo', authenticateToken, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const photoUrl = `/uploads/${req.file.filename}`;
+    await Signup.findByIdAndUpdate(req.user.id, { profilePhoto: photoUrl });
+    res.json({ message: 'Photo uploaded', profilePhoto: photoUrl });
+  } catch (err) {
+    console.error('Photo upload error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update profile fields
+app.put('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const allowed = ['name', 'bloodgroup', 'address', 'contact', 'pincode', 'bio', 'gender', 'dob', 'city', 'state', 'isDonor', 'emergencyContact', 'lastDonation', 'medicalConditions'];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    const user = await Signup.findByIdAndUpdate(req.user.id, updates, { new: true }).select('-password -otp -otpExpiry');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'Profile updated', user });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

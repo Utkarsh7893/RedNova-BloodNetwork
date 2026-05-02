@@ -15,7 +15,18 @@ const itemSchema=new mongoose.Schema({
     otp: String,
     otpExpiry: Date,
     isSubscribedToAlerts: { type: Boolean, default: false },
-    registeredEvents: { type: [String], default: [] }
-});
+    registeredEvents: { type: [String], default: [] },
+    // Profile fields
+    profilePhoto: { type: String, default: '' }, // Base64 or URL
+    bio: { type: String, default: '' },
+    gender: { type: String, default: '' },
+    dob: { type: String, default: '' },
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    isDonor: { type: Boolean, default: false },
+    emergencyContact: { type: String, default: '' },
+    lastDonation: { type: String, default: '' },
+    medicalConditions: { type: String, default: '' },
+}, { timestamps: true });
 
 module.exports=mongoose.model("signUpUser",itemSchema);

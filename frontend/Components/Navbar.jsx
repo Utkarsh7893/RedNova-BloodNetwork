@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../src/ThemeContext.jsx';
 
@@ -15,6 +15,33 @@ export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  const API_BASE = import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    // Try localStorage first for instant render
+    const stored = localStorage.getItem('ls_user');
+    if (stored) {
+      try { setUser(JSON.parse(stored)); } catch(e) {}
+    }
+    // Then refresh from API
+    const token = localStorage.getItem('ls_token');
+    if (token) {
+      fetch(`${API_BASE}/api/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            setUser(data);
+            localStorage.setItem('ls_user', JSON.stringify(data));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const photoSrc = user?.profilePhoto ? `${API_BASE}${user.profilePhoto}` : null;
+  const initials = user?.name ? user.name.charAt(0).toUpperCase() : '?';
 
   return (
     <>
@@ -211,6 +238,37 @@ export default function Navbar() {
         @media (max-width: 480px) {
           .ls-cta-btn { display: none; }
         }
+
+        .ls-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 2px solid var(--ls-crimson);
+          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+          flex-shrink: 0;
+        }
+        .ls-avatar:hover {
+          transform: scale(1.1);
+          box-shadow: 0 0 12px rgba(198,40,40,0.4);
+        }
+        .ls-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .ls-avatar-fallback {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--ls-crimson);
+          color: #fff;
+          font-weight: 800;
+          font-size: 14px;
+        }
       `}</style>
 
       <nav className="ls-navbar" style={{ position: 'sticky', top: 0 }}>
@@ -236,6 +294,16 @@ export default function Navbar() {
 
           {/* Actions */}
           <div className="ls-nav-actions">
+            {/* Profile Avatar */}
+            {user && (
+              <Link to="/profile" className="ls-avatar" title="My Profile">
+                {photoSrc ? (
+                  <img src={photoSrc} alt={user.name} />
+                ) : (
+                  <div className="ls-avatar-fallback">{initials}</div>
+                )}
+              </Link>
+            )}
             <button
               className="ls-theme-btn"
               onClick={toggleTheme}
@@ -268,6 +336,18 @@ export default function Navbar() {
 
         {/* Mobile dropdown */}
         <div className={`ls-mobile-menu${menuOpen ? ' open' : ''}`}>
+          {/* Profile link at top of mobile menu */}
+          {user && (
+            <Link
+              to="/profile"
+              className={`ls-mobile-link${location.pathname === '/profile' ? ' active' : ''}`}
+              onClick={() => setMenuOpen(false)}
+              style={{ borderBottom: '1px solid var(--ls-border)', paddingBottom: '14px', marginBottom: '6px' }}
+            >
+              <span style={{ display: 'inline-block', width: '24px', textAlign: 'center', fontSize: '18px', flexShrink: 0 }}>👤</span>
+              <span style={{ lineHeight: '1.3' }}>My Profile</span>
+            </Link>
+          )}
           {NAV_LINKS.map(({ to, icon, mobileLabel }) => (
             <Link
               key={to}

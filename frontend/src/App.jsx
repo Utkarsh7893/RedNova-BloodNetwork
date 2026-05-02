@@ -18,6 +18,7 @@ import BloodBankDetails from '../Components/bloodBankDetails';
 import PrivacyPolicy from '../Components/privacyPolicy';
 import Awareness from '../Components/awareness';
 import AdminDashboard from '../Components/adminDashboard';
+import ProfilePage from '../Components/profilePage';
 import { Routes, Route } from "react-router-dom";
 // import AddUser from '../Components/AddUser';
 // import AddItem from '../Components/AddItem';
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/privacypolicy" element={<PrivacyPolicy />} />
       <Route path="/awareness" element={<Awareness />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/profile" element={<ProfilePage />} />
     </Routes>
   );
 }
