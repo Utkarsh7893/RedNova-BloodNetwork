@@ -127,6 +127,7 @@ export default function DonorRegister() {
 
   const [successMsg, setSuccessMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -134,6 +135,7 @@ export default function DonorRegister() {
     e.preventDefault();
     setSuccessMsg(null);
     setErrorMsg(null);
+    setIsLoading(true);
     try {
       const lng = parseFloat(form.lng);
       const lat = parseFloat(form.lat);
@@ -176,6 +178,8 @@ export default function DonorRegister() {
     } catch (err) {
       console.error(err);
       setErrorMsg("Server error. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -252,10 +256,26 @@ export default function DonorRegister() {
           font-size: 15px;
           box-shadow: 0 10px 28px rgba(198,40,40,0.35);
           transition: transform 0.2s, box-shadow 0.2s;
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(198,40,40,0.50); }
+        .btn-main:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
         .bloodTag { padding: 10px 20px; border-radius: 12px; background: var(--ls-grad-crimson); color: white; font-weight: 800; font-size: 18px; }
         .leaflet-container { border-radius: 14px; height: 320px; margin-top: 6px; }
+        @keyframes ls-spin {
+          to { transform: rotate(360deg); }
+        }
+        .ls-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255,255,255,0.4);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: ls-spin 0.8s linear infinite;
+          display: inline-block;
+        }
       `}</style>
 
       <div className="donor-page">
@@ -302,7 +322,9 @@ export default function DonorRegister() {
                 </div>
               </div>
 
-              <button type="submit" className="btn-main">✅ Submit Registration</button>
+              <button type="submit" className="btn-main" disabled={isLoading}>
+                {isLoading ? <><span className="ls-spinner" style={{ marginRight: 8 }}></span> Submitting...</> : "✅ Submit Registration"}
+              </button>
             </form>
           </div>
 

@@ -27,9 +27,15 @@ export default function LoginSignupPage() {
   const [Vpassword, setVpassword] = useState("");
 
   const [showSignup, setShowSignup] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [otp, setOtp] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [carouselIdx, setCarouselIdx] = useState(0);
+
+  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
+  const [isLoadingSignup, setIsLoadingSignup] = useState(false);
+  const [isLoadingOtp, setIsLoadingOtp] = useState(false);
 
   const mountRef = useRef(null);
 
@@ -40,6 +46,19 @@ export default function LoginSignupPage() {
     }, 4000);
     return () => clearInterval(int);
   }, []);
+
+  // Handle Google OAuth Redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('google_token');
+    const status = params.get('status');
+    if (token && status === 'success') {
+      localStorage.setItem("ls_token", token);
+      navigate("/dashBoard");
+    } else if (params.get('error')) {
+      alert('Google authentication failed');
+    }
+  }, [navigate]);
 
   // Load Remember Me
   useEffect(() => {
@@ -57,6 +76,8 @@ export default function LoginSignupPage() {
       alert("Kindly fill all the required details");
       return;
     }
+
+    setIsLoadingLogin(true);
 
     try {
       const res = await fetch(`${API_BASE}/login`, {
@@ -77,36 +98,30 @@ export default function LoginSignupPage() {
           localStorage.removeItem("rememberedEmail");
         }
 
-        alert("Login successful");
         navigate("/dashBoard");
       } else {
         alert(data.message);
       }
     } catch (err) {
       alert("Server error");
+    } finally {
+      setIsLoadingLogin(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !name ||
-      !email ||
-      bloodgrp === "Select Blood Group" ||
-      !address ||
-      !contact ||
-      !password
-    ) {
+    if (!name || !email || !bloodgrp || !address || !pincode || !contact || !password || !Cpassword) {
       alert("Kindly fill all the required details");
       return;
     }
-
     if (password !== Cpassword) {
-      alert("Passwords do not match");
+      alert("Passwords do not match!");
       return;
     }
 
+    setIsLoadingSignup(true);
     try {
       const res = await fetch(`${API_BASE}/signup`, {
         method: "POST",
@@ -135,23 +150,45 @@ export default function LoginSignupPage() {
       }
 
 
-      // ✅ Successful signup
-      alert(`Welcome ${name}`);
-
-      setName("");
-      setEmail("");
-      setBloodgrp("Select Blood Group");
-      setAddress("");
-      setPincode("");
-      setContact("");
+      // ✅ Successful signup, show OTP
+      setShowOtp(true);
+      
+      // Clear password fields for security
       setPassword("");
       setCpassword("");
-      setShowSignup(false);
+      
     } catch (error) {
       alert("Server error. Please try again later.");
+    } finally {
+      setIsLoadingSignup(false);
     }
   };
 
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otp || otp.length < 6) return alert("Enter 6-digit OTP");
+
+    setIsLoadingOtp(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/otp/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.token) localStorage.setItem("ls_token", data.token);
+        if (data.user) localStorage.setItem("ls_user", JSON.stringify(data.user));
+        navigate("/dashBoard");
+      } else {
+        alert(data.message || "Invalid OTP");
+      }
+    } catch (err) {
+      alert("Error occurred while logging in.");
+    } finally {
+      setIsLoadingOtp(false);
+    }
+  };
 
   const handdleNavigate = () => {
     navigate("/forgot");
@@ -169,6 +206,18 @@ export default function LoginSignupPage() {
     @keyframes form-switch {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ls-spin {
+      to { transform: rotate(360deg); }
+    }
+    .ls-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: ls-spin 0.8s linear infinite;
+      display: inline-block;
     }
 
     .forgot-link {
@@ -188,10 +237,19 @@ export default function LoginSignupPage() {
       border-radius: 12px;
       padding: 12px;
       font-size: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
     }
     .btn-danger:hover {
       transform: translateY(-2px);
       box-shadow: 0 16px 40px rgba(198, 40, 40, 0.50);
+    }
+    .btn-danger:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
     }
     .ls-form-input {
       width: 100%; padding: 12px 16px; border-radius: 11px;
@@ -418,17 +476,19 @@ export default function LoginSignupPage() {
         left: 0;
         right: 0;
         z-index: 10;
-        padding: 0 20px 24px;
-        max-height: 65vh;
+        padding: 30px 20px 40px;
+        max-height: calc(100dvh - 165px); /* Caps height exactly below text, but anchors to bottom */
+        display: block; /* CRITICAL: removes flex-center clipping on scrollable content */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         animation: slide-up-form 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-        /* Smooth fade mask at top edge to hide harsh clip */
-        mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
+        /* Deep fade mask to create a soft, faded design on the top of the form */
+        mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 20px, black 70px, black 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 20px, black 70px, black 100%);
       }
       .form-card {
         max-width: 100%;
+        margin: 0 auto; /* Keep horizontally centered when display: block */
         gap: 10px;
         padding: 20px 18px;
       }
@@ -634,7 +694,34 @@ export default function LoginSignupPage() {
 
         {/* Form Column */}
         <div className="form-col">
-          {!showSignup ? (
+          {showOtp ? (
+            /* OTP VERIFICATION FORM */
+            <form key="otp" className="form-card" onSubmit={handleVerifyOtp}>
+              <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                <div style={{ fontFamily: "'Manrope',sans-serif", fontWeight: 800, fontSize: 22, color: 'var(--ls-text)' }}>
+                  Check Your Email
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ls-text-muted)', marginTop: 4 }}>
+                  We sent a 6-digit code to <b>{email}</b>
+                </div>
+              </div>
+              <input 
+                type="text" 
+                className="ls-form-input mt-3" 
+                placeholder="Enter 6-digit OTP" 
+                maxLength={6} 
+                value={otp} 
+                onChange={(e) => setOtp(e.target.value)} 
+                style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8, padding: '16px' }} 
+              />
+              <button type="submit" className="btn btn-danger w-100 mt-3" disabled={isLoadingOtp}>
+                {isLoadingOtp ? <><span className="ls-spinner" style={{ marginRight: 8 }}></span> Verifying...</> : "Verify Account"}
+              </button>
+              <p className="text-center" style={{ textAlign: 'center', margin: '12px 0 0', fontSize: 14, color: 'var(--ls-text-sub)' }}>
+                <span className="forgot-link" onClick={() => setShowOtp(false)}>Back to Sign Up</span>
+              </p>
+            </form>
+          ) : !showSignup ? (
             /* LOGIN FORM */
             <form
               key="login"
@@ -665,9 +752,27 @@ export default function LoginSignupPage() {
                 <span className="forgot-link" onClick={handdleNavigate}>Forgot Password?</span>
               </div>
 
-              <button type="submit" className="btn btn-danger w-100 mt-2">Sign In</button>
+              <button type="submit" className="btn btn-danger w-100 mt-2" disabled={isLoadingLogin}>
+                {isLoadingLogin ? <><span className="ls-spinner" style={{ marginRight: 8 }}></span> Signing in...</> : "Sign In"}
+              </button>
 
-              <p className="text-center" style={{ margin: 0, fontSize: 14, color: 'var(--ls-text-sub)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ls-border)' }} />
+                <span style={{ padding: '0 10px', fontSize: 13, color: 'var(--ls-text-muted)' }}>OR</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ls-border)' }} />
+              </div>
+
+              <button 
+                type="button" 
+                className="btn w-100" 
+                style={{ backgroundColor: 'white', color: '#333', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 600 }}
+                onClick={() => window.location.href = `${API_BASE}/auth/google`}
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 18, height: 18 }} />
+                Continue with Google
+              </button>
+
+              <p className="text-center" style={{ textAlign: 'center', margin: 0, fontSize: 14, color: 'var(--ls-text-sub)' }}>
                 Don't have an account? <span className="forgot-link" onClick={() => setShowSignup(true)}>Sign Up</span>
               </p>
             </form>
@@ -702,8 +807,27 @@ export default function LoginSignupPage() {
                 <span className="eye-icon" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "👁️" : "🙈"}</span>
               </div>
               <input type={showPassword ? "text" : "password"} className="ls-form-input" placeholder="Confirm Password" value={Cpassword} onChange={(e) => setCpassword(e.target.value)} />
-              <button type="submit" className="btn btn-danger w-100">Create Account</button>
-              <p className="text-center" style={{ margin: 0, fontSize: 14, color: 'var(--ls-text-sub)' }}>
+              <button type="submit" className="btn btn-danger w-100 mt-2" disabled={isLoadingSignup}>
+                {isLoadingSignup ? <><span className="ls-spinner" style={{ marginRight: 8 }}></span> Creating Account...</> : "Create Account"}
+              </button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ls-border)' }} />
+                <span style={{ padding: '0 10px', fontSize: 13, color: 'var(--ls-text-muted)' }}>OR</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ls-border)' }} />
+              </div>
+
+              <button 
+                type="button" 
+                className="btn w-100" 
+                style={{ backgroundColor: 'white', color: '#333', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 600 }}
+                onClick={() => window.location.href = `${API_BASE}/auth/google`}
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style={{ width: 18, height: 18 }} />
+                Continue with Google
+              </button>
+
+              <p className="text-center" style={{ textAlign: 'center', margin: 0, fontSize: 14, color: 'var(--ls-text-sub)' }}>
                 Already have an account? <span className="forgot-link" onClick={() => setShowSignup(false)}>Login</span>
               </p>
             </form>

@@ -8,6 +8,10 @@ const http = require("http");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const nodemailer = require('nodemailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'lifestream_super_secret_key_123';
 
@@ -48,6 +52,24 @@ app.use((req, res, next) => {
 app.use(express.json());          // <-- parse JSON
 app.use(express.urlencoded({ extended: true })); // optional, for form data
 app.use(cookieParser());
+
+// Session & Passport for Google OAuth
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'bloodnetwork_session_secret',
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Nodemailer setup for OTP
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_EMAIL,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -90,13 +112,36 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.post('/forgot', async (req, res) => {
   try {
-    const forgot = new Forgot({
-      email: req.body.email,
-    });
+    const { email } = req.body;
+    
+    // Send email using nodemailer
+    const mailOptions = {
+      from: `"lifeStream Blood Network" <${process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: 'lifeStream - Password Reset Link',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #FF1744;">lifeStream 🩸</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset your password. Click the button below to create a new password:</p>
+          <div style="margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?email=${email}" style="background-color: #FF1744; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
+          </div>
+          <p>If you didn't request a password reset, please ignore this email.</p>
+          <p style="color: #666; font-size: 12px; margin-top: 40px;">© 2026 lifeStream Blood Network. All rights reserved.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    const forgot = new Forgot({ email });
     await forgot.save();
-    res.send('email saved!');
+    
+    res.json({ message: 'Reset email sent successfully!' });
   } catch (err) {
-    res.status(500).send(err.message);
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: "Failed to send email. Please try again." });
   }
 });
 
@@ -133,14 +178,34 @@ app.post('/signup', async (req, res) => {
       address,
       pincode,
       contact,
-      password: hashedPassword
+      password: hashedPassword,
+      provider: 'local',
+      emailVerified: false
     });
 
     await signup.save();
 
-    // 3️⃣ Success response
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    signup.otp = await bcrypt.hash(otp, 10);
+    signup.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    await signup.save();
+
+    // Send OTP
+    try {
+      await transporter.sendMail({
+        from: process.env.SMTP_EMAIL,
+        to: email,
+        subject: 'Verify your LifeStream Account',
+        html: `<h3>Your Verification Code</h3><p>Enter <b>${otp}</b> to verify your account. It expires in 10 minutes.</p>`
+      });
+    } catch (mailErr) {
+      console.log('OTP Email error:', mailErr);
+    }
+
+    // 4️⃣ Success response
     res.status(201).json({
-      message: "Signup successful!"
+      message: "Signup successful! OTP sent to email."
     });
 
   } catch (err) {
@@ -150,6 +215,92 @@ app.post('/signup', async (req, res) => {
     });
   }
 });
+
+// OTP Verification Route
+app.post('/api/otp/verify', async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const user = await Signup.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user.otp || !user.otpExpiry) return res.status(400).json({ message: "OTP not requested or expired" });
+    if (new Date() > user.otpExpiry) return res.status(400).json({ message: "OTP expired" });
+
+    const isMatch = await bcrypt.compare(otp, user.otp);
+    if (!isMatch) return res.status(400).json({ message: "Invalid OTP" });
+
+    user.emailVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    
+    return res.status(200).json({ message: "OTP Verified", user: { id: user._id, name: user.name, email: user.email, bloodgrp: user.bloodgrp }, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Google OAuth Setup
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/callback"
+  },
+  async function(accessToken, refreshToken, profile, cb) {
+    try {
+      let user = await Signup.findOne({ email: profile.emails[0].value });
+      if (!user) {
+        // Create a new user from Google
+        user = new Signup({
+          name: profile.displayName,
+          email: profile.emails[0].value,
+          provider: 'google',
+          providerId: profile.id,
+          emailVerified: true
+        });
+        await user.save();
+      } else if (user.provider === 'local') {
+        // Link google if user exists
+        user.provider = 'google';
+        user.providerId = profile.id;
+        user.emailVerified = true;
+        await user.save();
+      }
+      return cb(null, user);
+    } catch (err) {
+      return cb(err, null);
+    }
+  }
+));
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login?error=true' }),
+  function(req, res) {
+    // Generate JWT
+    const token = jwt.sign(
+      { id: req.user._id, email: req.user.email, role: 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    // Redirect to frontend dashboard or login page with success
+    res.redirect(`http://localhost:5173/login?google_token=${token}&status=success`);
+  }
+);
 
 
 app.post('/login', async (req, res) => {

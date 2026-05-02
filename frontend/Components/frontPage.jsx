@@ -17,6 +17,9 @@ const BLOOD_TYPES = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
 // ECG path that looks like a heartbeat waveform
 const ECG_PATH = "M0,30 L20,30 L25,10 L30,50 L35,5 L42,55 L48,30 L60,30 L80,30 L85,10 L90,50 L95,5 L102,55 L108,30 L120,30";
 
+// Auth guard helper — checks localStorage for a valid token
+const isLoggedIn = () => !!localStorage.getItem('ls_token');
+
 export default function FrontPage() {
   const mountRef = useRef(null);
   const rafRef = useRef(null);
@@ -862,7 +865,7 @@ export default function FrontPage() {
             <button className="hero-theme-btn" onClick={toggleTheme} title="Toggle theme">
               {isDark ? <FiPlusCircle size={20} color="#FF1744" /> : <FiPlusCircle size={20} color="#D50000" />}
             </button>
-            <Link to="/registerdonor" className="hero-topbar-btn" style={{ background: 'linear-gradient(135deg, #FF1744, #D50000)', color: '#fff', border: 'none', boxShadow: '0 4px 14px rgba(213,0,0,0.3)' }}>
+            <Link to="/login" className="hero-topbar-btn" style={{ background: 'linear-gradient(135deg, #FF1744, #D50000)', color: '#fff', border: 'none', boxShadow: '0 4px 14px rgba(213,0,0,0.3)' }}>
               Sign Up
             </Link>
           </div>
@@ -892,19 +895,19 @@ export default function FrontPage() {
               <Link to="/login" className="hero-cta-primary">
                 <FiUsers size={20} /> Login
               </Link>
-              <Link to="/donors" className="hero-cta-secondary">
+              <Link to={isLoggedIn() ? "/donors" : "/login"} className="hero-cta-secondary">
                 <FiSearch size={20} /> Find Donors
               </Link>
             </div>
 
             {/* Mini stats row */}
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'nowrap', justifyContent: 'space-between', width: '100%', marginTop: '20px' }}>
               {[
-                { n: '10K+', l: 'Donors registered' },
-                { n: '56L+', l: 'Blood donated' },
-                { n: '300+', l: 'Blood banks' },
+                { n: '10K+', l: 'Donors' },
+                { n: '56L+', l: 'Donated' },
+                { n: '300+', l: 'Banks' },
               ].map(s => (
-                <div key={s.l}>
+                <div key={s.l} style={{ textAlign: 'center', flex: 1 }}>
                   <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: 22, color: '#FF1744', textShadow: '0 2px 10px rgba(255,23,68,0.2)' }}>{s.n}</div>
                   <div style={{ fontSize: 13, color: 'var(--ls-text)', fontWeight: 600, opacity: 0.85 }}>{s.l}</div>
                 </div>
@@ -933,7 +936,7 @@ export default function FrontPage() {
                     className={`hero-blood-chip${selectedBlood === bt ? ' selected' : ''}`}
                     onClick={() => {
                       setSelectedBlood(bt);
-                      navigate('/donors');
+                      navigate(isLoggedIn() ? '/donors' : '/login');
                     }}
                   >
                     {bt}
@@ -964,10 +967,10 @@ export default function FrontPage() {
                 is their lifeline. Be the reason someone gets to go home."
               </p>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <Link to="/registerdonor" className="hero-bottom-btn hero-bottom-btn-primary">
+                <Link to={isLoggedIn() ? "/registerdonor" : "/login"} className="hero-bottom-btn hero-bottom-btn-primary">
                   Register as Donor
                 </Link>
-                <Link to="/bloodbank" className="hero-bottom-btn hero-bottom-btn-secondary">
+                <Link to={isLoggedIn() ? "/bloodbank" : "/login"} className="hero-bottom-btn hero-bottom-btn-secondary">
                   Search Blood Banks
                 </Link>
               </div>
